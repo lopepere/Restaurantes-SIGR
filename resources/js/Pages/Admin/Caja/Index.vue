@@ -493,7 +493,7 @@
 
                     <div v-if="metodoSeleccionado === 'efectivo'">
                         <label class="block font-semibold text-stone-700 mb-1">Efectivo Recibido ($)</label>
-                        <input type="number" step="100" v-model.number="montoRecibidoInput" class="w-full rounded-xl border border-stone-300 p-2 text-xs font-mono font-bold" />
+                        <input type="number" step="100" min="0" v-model.number="montoRecibidoInput" class="w-full rounded-xl border border-stone-300 p-2 text-xs font-mono font-bold" />
                         <span class="text-[11px] text-stone-400 mt-1 block">
                             Cambio a Devolver: ${{ Math.max(0, montoRecibidoInput - calcularTotalCobro()).toLocaleString() }}
                         </span>

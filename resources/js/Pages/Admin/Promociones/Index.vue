@@ -117,7 +117,7 @@
                         </div>
                         <div>
                             <label class="block font-bold text-stone-700 mb-1">Valor Beneficio (% o $)</label>
-                            <input type="number" step="0.5" v-model.number="formPromo.valor_beneficio" required class="w-full border rounded-xl p-2 text-stone-900" />
+                            <input type="number" step="0.5" min="0" v-model.number="formPromo.valor_beneficio" required class="w-full border rounded-xl p-2 text-stone-900" />
                         </div>
                         <div>
                             <label class="block font-bold text-stone-700 mb-1">Fecha Inicio</label>
@@ -222,6 +222,7 @@ function abrirModalPromocion(promo = null) {
 }
 
 function guardarPromocion() {
+    formPromo.value.valor_beneficio = Math.max(0, Number(formPromo.value.valor_beneficio) || 0);
     if (promoEnEdicion.value) {
         router.put(`/admin/promociones/${promoEnEdicion.value.id}`, formPromo.value, {
             onSuccess: () => modalVisible.value = false,

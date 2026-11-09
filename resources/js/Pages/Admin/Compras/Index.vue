@@ -1044,6 +1044,12 @@ const calcularTotalCompra = () => {
 };
 
 const ejecutarRegistroCompra = () => {
+    formCompra.impuesto_porcentaje = Math.max(0, Number(formCompra.impuesto_porcentaje) || 0);
+    formCompra.items = formCompra.items.map(it => ({
+        ...it,
+        cantidad: Math.max(0.01, Number(it.cantidad) || 0.01),
+        costo_unitario: Math.max(0, Number(it.costo_unitario) || 0),
+    }));
     formCompra.post('/admin/compras', {
         preserveScroll: true,
         onSuccess: () => { modalCompraAbierto.value = false; },

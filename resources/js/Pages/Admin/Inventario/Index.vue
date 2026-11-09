@@ -421,6 +421,7 @@ const cerrarModalAjustar = () => {
 
 const ejecutarAjuste = () => {
     if (!itemSeleccionado.value) return;
+    formAjustar.nueva_existencia = Math.max(0, Number(formAjustar.nueva_existencia) || 0);
     formAjustar.post(`/admin/inventario/${itemSeleccionado.value.id}/ajustar`, {
         preserveScroll: true,
         onSuccess: () => cerrarModalAjustar(),

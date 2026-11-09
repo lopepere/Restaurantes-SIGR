@@ -75,6 +75,11 @@ class ConfiguracionController extends Controller
         $datos = $request->validate([
             'parametros' => 'required|array',
             'parametros.*' => 'nullable',
+            'parametros.ventana_edicion' => 'nullable|numeric|min:0',
+            'parametros.reserva_duracion_minutos' => 'nullable|numeric|min:1',
+            'parametros.inc_porcentaje' => 'nullable|numeric|min:0|max:100',
+            'parametros.iva_porcentaje' => 'nullable|numeric|min:0|max:100',
+            'parametros.caja_base_efectivo_inicial' => 'nullable|numeric|min:0',
         ]);
 
         foreach ($datos['parametros'] as $clave => $valor) {

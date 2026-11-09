@@ -312,7 +312,7 @@
                         </div>
                         <div>
                             <label class="block font-bold text-stone-700 mb-1">Precio ($ COP)</label>
-                            <input type="number" step="100" v-model.number="formItem.precio" required class="w-full border rounded-xl p-2 text-stone-900" />
+                            <input type="number" step="100" min="0" v-model.number="formItem.precio" required class="w-full border rounded-xl p-2 text-stone-900" />
                         </div>
                         <div>
                             <label class="block font-bold text-stone-700 mb-1">Tipo Impuesto</label>
@@ -322,7 +322,7 @@
                         </div>
                         <div>
                             <label class="block font-bold text-stone-700 mb-1">% Impuesto</label>
-                            <input type="number" step="0.5" v-model.number="formItem.impuesto_porcentaje" class="w-full border rounded-xl p-2 text-stone-900" />
+                            <input type="number" step="0.5" min="0" max="100" v-model.number="formItem.impuesto_porcentaje" class="w-full border rounded-xl p-2 text-stone-900" />
                         </div>
                     </div>
 
@@ -798,18 +798,20 @@ function agregarProductoAlCombo() {
     const prod = (props.itemsParaCombo || []).find(i => i.id === Number(comboProductoSeleccionadoId.value));
     if (!prod) return;
 
+    const cantSegura = Math.max(1, Number(comboCantidad.value) || 1);
+
     if (!formItem.value.combo_items) {
         formItem.value.combo_items = [];
     }
 
     const existe = formItem.value.combo_items.find(ci => ci.item_id === prod.id);
     if (existe) {
-        existe.cantidad += Number(comboCantidad.value) || 1;
+        existe.cantidad += cantSegura;
     } else {
         formItem.value.combo_items.push({
             item_id: prod.id,
             nombre: prod.nombre,
-            cantidad: Number(comboCantidad.value) || 1,
+            cantidad: cantSegura,
         });
     }
 
@@ -872,9 +874,14 @@ function abrirModalItem(item = null) {
 function guardarItem() {
     const payload = {
         ...formItem.value,
+        precio: Math.max(0, Number(formItem.value.precio) || 0),
+        impuesto_porcentaje: Math.max(0, Number(formItem.value.impuesto_porcentaje) || 0),
+        existencia: Math.max(0, Number(formItem.value.existencia) || 0),
+        existencia_minima: Math.max(0, Number(formItem.value.existencia_minima) || 0),
+        orden: Math.max(0, Number(formItem.value.orden) || 0),
         combo_items: (formItem.value.combo_items || []).map(ci => ({
             item_id: ci.item_id,
-            cantidad: Number(ci.cantidad) || 1,
+            cantidad: Math.max(1, Number(ci.cantidad) || 1),
         })),
     };
 
