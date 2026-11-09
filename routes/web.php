@@ -5,13 +5,17 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\MeseroController;
 use App\Http\Controllers\Admin\PapeleraController;
+use App\Http\Controllers\Admin\PedidoController as AdminPedidoController;
 use App\Http\Controllers\Admin\PromocionController;
 use App\Http\Controllers\Auth\InvitacionController;
 use App\Http\Controllers\Auth\RegistroController;
 use App\Http\Controllers\Cliente\DashboardController as ClienteDashboardController;
+use App\Http\Controllers\Cliente\PedidoController as ClientePedidoController;
 use App\Http\Controllers\Cliente\PerfilController;
 use App\Http\Controllers\Mesero\DashboardController as MeseroDashboardController;
+use App\Http\Controllers\Mesero\PedidoController as MeseroPedidoController;
 use App\Http\Controllers\Public\HomeController;
+use App\Http\Controllers\Public\PedidoPublicoController;
 use App\Http\Controllers\SuperAdmin\AdministradorController;
 use App\Http\Controllers\SuperAdmin\DashboardController as SuperAdminDashboardController;
 use App\Http\Controllers\SuperAdmin\SucursalController;
@@ -24,6 +28,8 @@ use Illuminate\Support\Facades\Route;
 */
 Route::get('/', HomeController::class)->name('home');
 Route::get('/sucursal/{slug}', HomeController::class)->name('home.sucursal');
+Route::post('/pedidos', [PedidoPublicoController::class, 'store'])->name('pedidos.publico.store');
+Route::get('/pedidos/confirmado/{numero}', [PedidoPublicoController::class, 'confirmado'])->name('pedidos.publico.confirmado');
 
 // Registro voluntario desde el home (RF-USR-14, SC-01)
 Route::get('/registro', [RegistroController::class, 'create'])->name('registro');
@@ -43,6 +49,13 @@ Route::middleware(['auth', 'verified', 'role:cliente'])->prefix('cliente')->name
     Route::get('/perfil', [PerfilController::class, 'show'])->name('perfil');
     Route::put('/perfil', [PerfilController::class, 'update'])->name('perfil.update');
     Route::post('/perfil/avatar', [PerfilController::class, 'regenerarAvatar'])->name('perfil.avatar');
+
+    // Pedidos del cliente en tiempo real
+    Route::get('/pedidos', [ClientePedidoController::class, 'index'])->name('pedidos.index');
+    Route::get('/pedidos/{pedido}', [ClientePedidoController::class, 'show'])->name('pedidos.show');
+    Route::put('/pedidos/{pedido}/notas', [ClientePedidoController::class, 'editarNotas'])->name('pedidos.notas.update');
+    Route::post('/pedidos/{pedido}/cancelar', [ClientePedidoController::class, 'solicitarCancelacion'])->name('pedidos.cancelar');
+    Route::post('/pedidos/{pedido}/repetir', [ClientePedidoController::class, 'repetir'])->name('pedidos.repetir');
 });
 
 /*
@@ -52,6 +65,13 @@ Route::middleware(['auth', 'verified', 'role:cliente'])->prefix('cliente')->name
 */
 Route::middleware(['auth', 'role:mesero'])->prefix('mesero')->name('mesero.')->group(function () {
     Route::get('/', MeseroDashboardController::class)->name('dashboard');
+
+    // Comandas en tiempo real
+    Route::get('/pedidos', [MeseroPedidoController::class, 'index'])->name('pedidos.index');
+    Route::get('/pedidos/crear', [MeseroPedidoController::class, 'create'])->name('pedidos.create');
+    Route::post('/pedidos', [MeseroPedidoController::class, 'store'])->name('pedidos.store');
+    Route::put('/pedidos/{pedido}', [MeseroPedidoController::class, 'editar'])->name('pedidos.update');
+    Route::post('/pedidos/{pedido}/cancelar', [MeseroPedidoController::class, 'solicitarCancelacion'])->name('pedidos.cancelar');
 });
 
 /*
@@ -61,6 +81,11 @@ Route::middleware(['auth', 'role:mesero'])->prefix('mesero')->name('mesero.')->g
 */
 Route::middleware(['auth', 'role:admin|super_admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', AdminDashboardController::class)->name('dashboard');
+
+    // Monitor de Pedidos en Tiempo Real (RF-PED-01..22, Prompt A.6)
+    Route::get('/pedidos', [AdminPedidoController::class, 'index'])->name('pedidos.index');
+    Route::post('/pedidos/{pedido}/estado', [AdminPedidoController::class, 'cambiarEstado'])->name('pedidos.estado');
+    Route::post('/pedidos/{pedido}/resolver-cancelacion', [AdminPedidoController::class, 'resolverCancelacion'])->name('pedidos.resolver-cancelacion');
 
     // CRUD de Meseros de la sucursal (RF-USR-09)
     Route::get('/meseros', [MeseroController::class, 'index'])->name('meseros.index');

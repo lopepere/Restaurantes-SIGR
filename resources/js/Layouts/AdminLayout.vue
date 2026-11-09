@@ -13,7 +13,11 @@
             <nav class="flex-1 px-3 py-4 space-y-1 text-sm overflow-y-auto">
                 <a href="/admin" class="flex items-center space-x-3 px-3 py-2 rounded-lg bg-orange-600/20 text-orange-400 font-semibold">
                     <span>📊</span>
-                    <span>Tablero y Pedidos</span>
+                    <span>Tablero General</span>
+                </a>
+                <a href="/admin/pedidos" class="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-stone-800 text-stone-300 hover:text-white transition">
+                    <span>🛎️</span>
+                    <span>Monitor de Pedidos</span>
                 </a>
                 <a href="/admin/menu" class="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-stone-800 text-stone-300 hover:text-white transition">
                     <span>🍔</span>

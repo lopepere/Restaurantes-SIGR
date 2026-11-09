@@ -13,11 +13,11 @@
 
                 <div class="flex items-center space-x-3">
                     <a
-                        href="/mesero/pedidos/nuevo"
+                        href="/mesero/pedidos/crear"
                         class="bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs px-3 py-1.5 rounded-lg flex items-center space-x-1 shadow-sm active:scale-95 transition"
                     >
                         <span>➕</span>
-                        <span>Nuevo Pedido</span>
+                        <span>Nueva Comanda</span>
                     </a>
                     <form method="POST" action="/logout">
                         <button type="submit" class="text-xs text-stone-400 hover:text-white transition">

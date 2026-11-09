@@ -149,6 +149,38 @@ class Promocion extends Model
     }
 
     /**
+     * Determina si la promoción aplica a un ítem específico del menú.
+     */
+    public function aplicaAItem(ItemMenu $item): bool
+    {
+        if ($this->aplica_a_todo) {
+            return true;
+        }
+
+        if ($this->items()->where('items_menu.id', $item->id)->exists()) {
+            return true;
+        }
+
+        if ($item->categoria_id && $this->categorias()->where('categorias.id', $item->categoria_id)->exists()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Retorna una descripción corta y atractiva del beneficio.
+     */
+    public function beneficioTexto(): string
+    {
+        return match ($this->tipo_beneficio) {
+            TipoBeneficioPromocion::PORCENTAJE => (int) $this->valor_beneficio.'% OFF',
+            TipoBeneficioPromocion::VALOR_FIJO => MonedaService::formatear($this->valor_beneficio).' OFF',
+            TipoBeneficioPromocion::PRECIO_ESPECIAL => 'Precio especial '.MonedaService::formatear($this->valor_beneficio),
+        };
+    }
+
+    /**
      * @param  Builder<Promocion>  $query
      */
     public function scopePublicadas(Builder $query): void

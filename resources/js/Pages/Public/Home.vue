@@ -419,12 +419,140 @@
 
                         <button
                             type="button"
-                            @click="procederAlPedido"
+                            @click="mostrarModalCheckout = true"
                             class="w-full py-3.5 bg-orange-600 hover:bg-orange-700 active:scale-98 text-white text-sm font-bold rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
                         >
-                            <span>🛎️ Confirmar y Enviar Pedido</span>
+                            <span>🛎️ Continuar con el Pedido</span>
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Checkout / Confirmación de Pedido en Tiempo Real -->
+        <div v-if="mostrarModalCheckout" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 sm:p-8 overflow-hidden relative max-h-[92vh] flex flex-col">
+                <div class="flex justify-between items-center pb-4 border-b border-stone-100">
+                    <div>
+                        <h3 class="text-lg font-black text-stone-900 flex items-center gap-2">
+                            <span>🛎️ Finalizar Pedido</span>
+                        </h3>
+                        <p class="text-xs text-stone-500">{{ sucursalActiva.nombre }}</p>
+                    </div>
+                    <button
+                        type="button"
+                        @click="mostrarModalCheckout = false"
+                        class="p-2 text-stone-400 hover:text-stone-700 rounded-lg hover:bg-stone-100 transition"
+                    >
+                        ✕
+                    </button>
+                </div>
+
+                <div class="overflow-y-auto py-4 space-y-4 flex-1">
+                    <!-- Modalidad del Pedido -->
+                    <div>
+                        <label class="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">Modalidad</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button
+                                type="button"
+                                @click="checkoutForm.tipo = 'domicilio'"
+                                :class="['py-2.5 px-3 rounded-xl text-xs font-bold border transition text-center', checkoutForm.tipo === 'domicilio' ? 'bg-orange-600 text-white border-orange-600' : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100']"
+                            >
+                                🛵 Domicilio
+                            </button>
+                            <button
+                                type="button"
+                                @click="checkoutForm.tipo = 'para_llevar'"
+                                :class="['py-2.5 px-3 rounded-xl text-xs font-bold border transition text-center', checkoutForm.tipo === 'para_llevar' ? 'bg-orange-600 text-white border-orange-600' : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100']"
+                            >
+                                🛍️ Para llevar
+                            </button>
+                            <button
+                                type="button"
+                                @click="checkoutForm.tipo = 'en_sitio'"
+                                :class="['py-2.5 px-3 rounded-xl text-xs font-bold border transition text-center', checkoutForm.tipo === 'en_sitio' ? 'bg-orange-600 text-white border-orange-600' : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100']"
+                            >
+                                🍽️ En mesa
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Datos del Contacto (Invitado o Autenticado) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-stone-700 mb-1">Nombre completo *</label>
+                            <input
+                                v-model="checkoutForm.nombre_contacto"
+                                type="text"
+                                required
+                                placeholder="Tu nombre"
+                                class="w-full px-3 py-2 text-sm rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-stone-700 mb-1">Teléfono móvil *</label>
+                            <input
+                                v-model="checkoutForm.telefono_contacto"
+                                type="tel"
+                                required
+                                placeholder="Ej: 3001234567"
+                                class="w-full px-3 py-2 text-sm rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-stone-700 mb-1">Correo electrónico *</label>
+                        <input
+                            v-model="checkoutForm.email_contacto"
+                            type="email"
+                            required
+                            placeholder="tucorreo@ejemplo.com"
+                            class="w-full px-3 py-2 text-sm rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                    </div>
+
+                    <div v-if="checkoutForm.tipo === 'domicilio'">
+                        <label class="block text-xs font-semibold text-stone-700 mb-1">Dirección de entrega *</label>
+                        <input
+                            v-model="checkoutForm.direccion_entrega"
+                            type="text"
+                            required
+                            placeholder="Calle, carrera, número, apartamento..."
+                            class="w-full px-3 py-2 text-sm rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-stone-700 mb-1">Notas especiales para cocina</label>
+                        <textarea
+                            v-model="checkoutForm.notas"
+                            rows="2"
+                            placeholder="Ej: salsa aparte, cubiertos biodegradables..."
+                            class="w-full px-3 py-2 text-sm rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        ></textarea>
+                    </div>
+
+                    <div v-if="checkoutError" class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-medium">
+                        {{ checkoutError }}
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-stone-100 flex items-center justify-between gap-4">
+                    <div>
+                        <span class="text-xs text-stone-500">Total a pagar:</span>
+                        <p class="text-lg font-black text-orange-600">{{ formatearMoneda(resumenTotales.total) }}</p>
+                    </div>
+
+                    <button
+                        type="button"
+                        :disabled="enviandoPedido"
+                        @click="enviarPedido"
+                        class="px-6 py-3 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-bold text-sm rounded-xl transition cursor-pointer flex items-center gap-2"
+                    >
+                        <span v-if="enviandoPedido" class="animate-spin">⏳</span>
+                        <span>Confirmar Pedido</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -626,7 +754,64 @@ function formatearMoneda(valor) {
     return '$ ' + Number(valor).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+const mostrarModalCheckout = ref(false);
+const enviandoPedido = ref(false);
+const checkoutError = ref(null);
+
+const checkoutForm = ref({
+    tipo: 'domicilio',
+    nombre_contacto: '',
+    telefono_contacto: '',
+    email_contacto: '',
+    direccion_entrega: '',
+    notas: '',
+});
+
 function procederAlPedido() {
-    alert('¡Excelente selección! En la siguiente iteración (I-3) se completará el flujo de pedido en tiempo real.');
+    mostrarModalCheckout.value = true;
+}
+
+function enviarPedido() {
+    checkoutError.value = null;
+
+    if (checkoutForm.value.tipo === 'domicilio' && !checkoutForm.value.direccion_entrega) {
+        checkoutError.value = 'La dirección de entrega es obligatoria para domicilios.';
+        return;
+    }
+
+    if (!checkoutForm.value.nombre_contacto || !checkoutForm.value.telefono_contacto || !checkoutForm.value.email_contacto) {
+        checkoutError.value = 'Por favor completa tu nombre, teléfono y correo electrónico.';
+        return;
+    }
+
+    enviandoPedido.value = true;
+
+    const payload = {
+        sucursal_id: props.sucursalActiva.id,
+        tipo: checkoutForm.value.tipo,
+        nombre_contacto: checkoutForm.value.nombre_contacto,
+        telefono_contacto: checkoutForm.value.telefono_contacto,
+        email_contacto: checkoutForm.value.email_contacto,
+        direccion_entrega: checkoutForm.value.direccion_entrega,
+        notas: checkoutForm.value.notas,
+        propina_tipo: tipoPropina.value === '5' || tipoPropina.value === '10' ? 'porcentaje' : (tipoPropina.value === 'abierta' ? 'abierta' : 'ninguna'),
+        propina_porcentaje: tipoPropina.value === '5' ? 5 : (tipoPropina.value === '10' ? 10 : null),
+        propina_valor: tipoPropina.value === 'abierta' ? Number(valorPropinaLibre.value) || 0 : null,
+        items: carrito.value.map(i => ({
+            item_menu_id: i.id,
+            cantidad: i.cantidad,
+            notas: i.notas || null,
+        })),
+    };
+
+    router.post('/pedidos', payload, {
+        onError: (err) => {
+            enviandoPedido.value = false;
+            checkoutError.value = Object.values(err)[0] || 'Ocurrió un error al procesar el pedido.';
+        },
+        onFinish: () => {
+            enviandoPedido.value = false;
+        },
+    });
 }
 </script>

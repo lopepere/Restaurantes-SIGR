@@ -20,15 +20,15 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $nombre
  * @property string $slug
  * @property string|null $descripcion
- * @property string $precio
+ * @property float|string $precio
  * @property TipoImpuesto $impuesto_tipo
- * @property string $impuesto_porcentaje
+ * @property float|string $impuesto_porcentaje
  * @property string|null $imagen
  * @property int $orden
  * @property bool $es_combo
  * @property bool $controla_inventario
- * @property string $existencia
- * @property string $existencia_minima
+ * @property float|string $existencia
+ * @property float|string $existencia_minima
  * @property bool $disponible
  * @property bool $activo
  * @property-read Categoria $categoria

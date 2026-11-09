@@ -9,6 +9,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -112,5 +113,21 @@ class User extends Authenticatable implements MustVerifyEmail
         $id = $sucursal instanceof Sucursal ? $sucursal->id : (int) $sucursal;
 
         return in_array($id, $this->sucursalIds(), true);
+    }
+
+    /**
+     * @return HasMany<Pedido, $this>
+     */
+    public function pedidosComoCliente(): HasMany
+    {
+        return $this->hasMany(Pedido::class, 'cliente_id');
+    }
+
+    /**
+     * @return HasMany<Pedido, $this>
+     */
+    public function pedidosComoMesero(): HasMany
+    {
+        return $this->hasMany(Pedido::class, 'mesero_id');
     }
 }

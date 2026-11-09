@@ -16,10 +16,22 @@ trait BelongsToSucursal
 
             if ($user instanceof User) {
                 // El Superadmin tiene acceso global sin restricciones por sucursal
-                if (! $user->hasRole('super_admin')) {
-                    $sucursalIds = $user->sucursalIds();
-                    $q->whereIn($q->getModel()->getTable().'.sucursal_id', $sucursalIds);
+                if ($user->hasRole('super_admin')) {
+                    return;
                 }
+
+                // Los clientes acceden a sus propios pedidos y reservas independientemente de sucursal_user
+                if ($user->hasRole('cliente')) {
+                    $tabla = $q->getModel()->getTable();
+                    if (in_array($tabla, ['pedidos', 'reservas'], true)) {
+                        $q->where($tabla.'.cliente_id', $user->id);
+                    }
+
+                    return;
+                }
+
+                $sucursalIds = $user->sucursalIds();
+                $q->whereIn($q->getModel()->getTable().'.sucursal_id', $sucursalIds);
             } else {
                 // Para visitantes públicos, filtrar por la sucursal activa en sesión si existe
                 $sucursalId = session('sucursal_id');

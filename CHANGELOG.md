@@ -6,6 +6,44 @@ Todos los cambios notables de este proyecto serán documentados en este archivo 
 
 ## [Sin publicar]
 
+### Añadido (Iteración I-3 · Pedidos en tiempo real) [LB-01]
+- **Migraciones de Base de Datos**:
+  - `espacios`: control físico de mesas, barras y salones con capacidad, estado operativo (`EstadoEspacio`) y sucursal.
+  - `pedidos`: registro central con número único por sucursal (`PED-{SUCURSAL_ID}-{YYYYMMDD}-{0001}`), modalidades (`en_sitio`, `para_llevar`, `domicilio`), estados de la máquina ERS 8.3, soporte de comensal/mesero/mesa, desglose tributario, propina voluntaria (SC-02) y marcas de auditoría de cancelación.
+  - `pedido_items`: snapshot histórico inmutable de precios, impuestos, subtotales, notas de preparación y desglose de combos.
+  - `pedido_estados`: bitácora secuencial de transiciones de estado para auditoría y timeline del pedido.
+  - `solicitudes_cancelacion`: tracking formal de solicitudes de anulación por parte de clientes o personal para resolución administrativa.
+- **Modelos, Observadores y Enums**:
+  - `App\Models\Pedido`, `App\Models\PedidoItem`, `App\Models\PedidoEstado`, `App\Models\SolicitudCancelacion`, `App\Models\Espacio`.
+  - `App\Observers\PedidoObserver`: actualización reactiva del estado de las mesas a `ocupado` ante pedidos activos y liberación automática a `libre` al completarse o cancelarse todos los pedidos de la mesa.
+  - Refinamiento de `BelongsToSucursal` para permitir a clientes autenticados acceder de forma transparente a sus propios pedidos sin depender de asignaciones laborales en `sucursal_user`.
+- **Acciones y Servicios de Negocio (Monolito Modular)**:
+  - `App\Actions\Pedidos\CrearPedidoAction`: creación transaccional bajo `DB::transaction()` con `lockForUpdate()` para decremento atómico de inventario en platos individuales y componentes de combos (CA-27, RF-INV-02); cálculo de propinas voluntarias sobre la base sin impuestos (SC-02); resolución de clientes autenticados, meseros o invitados con generación implícita de cuenta y enlace firmado de 72h (CA-01, CA-33, CA-37).
+  - `App\Actions\Pedidos\ActualizarEstadoPedidoAction`: máquina de estados con validación estricta de transiciones según ERS 8.3, reposición automática de existencias con lock al cancelar y notificaciones en cola.
+  - `App\Actions\Pedidos\SolicitarCancelacionAction`: flujo de solicitud con motivo y parámetro configurable de cancelación automática en PENDIENTE (CA-08, RF-PED-09).
+  - `App\Actions\Pedidos\ResolverCancelacionAction`: resolución administrativa para aprobar (con reposición de stock) o rechazar devolviendo a cocina (CA-09).
+  - `App\Actions\Pedidos\EditarPedidoAction`: control estricto de la ventana de edición de 5 minutos; clientes solo notas en PENDIENTE, meseros ítems/notas de sus órdenes (CA-10).
+  - `App\Actions\Pedidos\RepetirPedidoAction`: rearmado inteligente de carritos con precios vigentes y advertencia sobre productos agotados o descontinuados (RF-PED-18).
+- **WebSockets en Tiempo Real (Laravel Reverb) y Polling**:
+  - `App\Events\PedidoCreado`: difusión privada instantánea en `sucursal.{id}.pedidos` y `cliente.{id}.pedidos`.
+  - `App\Events\PedidoActualizado`: notificación reactiva de cambios de estado y cancelaciones con alerta sonora/visual.
+  - `App\Events\CancelacionSolicitada`: alerta urgente sonora/visual en monitor de administración ante peticiones de clientes.
+  - `App\Events\ProductoAgotado`: difusión en canal público del menú ante agotamiento de inventario.
+  - Fallback de polling de 15 segundos en monitor administrativo ante contingencias de red.
+- **Notificaciones por Correo Electrónico Encoladas**:
+  - `App\Notifications\PedidoConfirmadoNotification` (RF-NOT-01) y `App\Notifications\EstadoPedidoActualizadoNotification` (RF-NOT-02).
+- **Controladores y Frontend Inertia.js (Vue 3 + Tailwind CSS 4)**:
+  - `Public/PedidoPublicoController`: recepción de pedidos desde home y pantalla de confirmación/seguimiento en vivo `Public/PedidoConfirmado.vue`.
+  - `Cliente/PedidoController`: historial de pedidos `Cliente/Pedidos/Index.vue` y detalle con timeline y ventana de edición `Cliente/Pedidos/Show.vue`.
+  - `Cliente/DashboardController`: actualización con promociones de primeras, pedidos en curso y órdenes recientes.
+  - `Mesero/PedidoController`: gestión de comandas `Mesero/Pedidos/Index.vue` y toma rápida de comandas en sala `Mesero/Pedidos/Create.vue`.
+  - `Admin/PedidoController`: monitor de pedidos en tiempo real `Admin/Pedidos/Index.vue` con pestañas («En curso», «Solicitudes de cancelación», «Domicilios», «Para llevar», «En sitio», «Todos»), acordeón, botones de avance de estado, chime sonoro sintetizado con Web Audio API y filtros completos de la ERS.
+- **Seeders**:
+  - `EspacioSeeder`: 12 espacios de atención (barras, mesas de 2, 4, 6 y 8 comensales, y salón de eventos) según sección A.8 del Prompt Maestro.
+- **Pruebas Automatizadas (Pest)**:
+  - 21 pruebas nuevas en `tests/Feature/Pedidos/PedidoTest.php` y `tests/Feature/Pedidos/PedidoControllersTest.php`.
+  - Suite global: 59 pruebas, 283 aserciones, 100% pasando (~7.2s).
+
 ### Añadido (Iteración I-2 · Menú, promociones y sitio público) [LB-01]
 - **Migraciones de Base de Datos**:
   - `categorias`: gestión por sucursal con `slug`, `orden`, `icono`, `activa` y borrado lógico `deleted_at`.

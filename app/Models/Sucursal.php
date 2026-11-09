@@ -86,4 +86,24 @@ class Sucursal extends Model
     {
         return $this->hasMany(Promocion::class, 'sucursal_id');
     }
+
+    /**
+     * Espacios y mesas de esta sucursal.
+     *
+     * @return HasMany<Espacio, $this>
+     */
+    public function espacios(): HasMany
+    {
+        return $this->hasMany(Espacio::class, 'sucursal_id');
+    }
+
+    /**
+     * Pedidos de esta sucursal.
+     *
+     * @return HasMany<Pedido, $this>
+     */
+    public function pedidos(): HasMany
+    {
+        return $this->hasMany(Pedido::class, 'sucursal_id');
+    }
 }

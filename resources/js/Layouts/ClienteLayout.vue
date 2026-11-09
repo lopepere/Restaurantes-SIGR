@@ -9,7 +9,8 @@
                         <span>SIGR</span>
                     </a>
                     <nav class="hidden md:flex space-x-4 text-sm font-medium">
-                        <a href="/cliente" class="text-stone-900 font-semibold hover:text-orange-600 transition">Mis Pedidos</a>
+                        <a href="/cliente" class="text-stone-900 font-semibold hover:text-orange-600 transition">Inicio</a>
+                        <a href="/cliente/pedidos" class="text-stone-600 hover:text-orange-600 transition">Mis Pedidos</a>
                         <a href="/cliente/comprobantes" class="text-stone-600 hover:text-orange-600 transition">Mis Comprobantes</a>
                         <a href="/cliente/reservas" class="text-stone-600 hover:text-orange-600 transition">Mis Reservas</a>
                         <a href="/cliente/perfil" class="text-stone-600 hover:text-orange-600 transition">Perfil</a>
