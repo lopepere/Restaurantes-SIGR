@@ -28,7 +28,7 @@ class PedidoController extends Controller
 
         $pedidos = Pedido::withoutGlobalScopes()
             ->where('sucursal_id', $sucursalId)
-            ->with(['cliente', 'mesero', 'espacio', 'items'])
+            ->with(['sucursal', 'cliente', 'mesero', 'espacio', 'items'])
             ->orderByDesc('created_at')
             ->paginate(20)
             ->through(fn (Pedido $p) => [

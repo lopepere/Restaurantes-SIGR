@@ -42,7 +42,7 @@ class PedidoController extends Controller
 
         $query = Pedido::withoutGlobalScopes()
             ->where('sucursal_id', $sucursalId)
-            ->with(['cliente', 'mesero', 'espacio', 'items.itemMenu', 'estados']);
+            ->with(['sucursal', 'cliente', 'mesero', 'espacio', 'items.itemMenu', 'estados']);
 
         // Aplicación de pestañas principales (Prompt A.6)
         match ($tab) {

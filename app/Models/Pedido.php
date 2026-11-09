@@ -237,7 +237,9 @@ class Pedido extends Model
      */
     public function fechaLocal(?string $zonaHoraria = null): string
     {
-        $tz = $zonaHoraria ?? $this->sucursal->zona_horaria;
+        $tz = $zonaHoraria
+            ?? ($this->relationLoaded('sucursal') ? $this->sucursal?->zona_horaria : null)
+            ?? config('app.timezone', 'America/Bogota');
 
         return $this->created_at->copy()->setTimezone($tz)->format('d/m/Y H:i');
     }
