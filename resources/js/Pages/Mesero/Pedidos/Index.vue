@@ -71,6 +71,17 @@
                         </div>
 
                         <div class="flex items-center gap-2">
+                            <!-- Botón Acordeón Detalles (Item 10) -->
+                            <button
+                                type="button"
+                                @click="toggleAcordeon(pedido.id)"
+                                class="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl border border-stone-300 transition cursor-pointer flex items-center gap-1.5"
+                                title="Ver platos y detalle de la comanda"
+                            >
+                                <span>📋 Detalles</span>
+                                <span :class="{'rotate-180': acordeonesAbiertos[pedido.id]}" class="transition-transform duration-200 text-[10px]">▼</span>
+                            </button>
+
                             <!-- Botón de cancelación de comanda si está activa -->
                             <button
                                 v-if="!pedido.solicito_cancelacion && pedido.estado !== 'pagado' && pedido.estado !== 'cancelado'"
@@ -80,6 +91,40 @@
                             >
                                 Cancelar
                             </button>
+                        </div>
+                    </div>
+
+                    <!-- Acordeón Desplegable con Detalles de la Comanda (Item 10) -->
+                    <div
+                        v-if="acordeonesAbiertos[pedido.id]"
+                        class="w-full mt-3 pt-3 border-t border-stone-200/80 bg-stone-50/80 rounded-2xl p-4 space-y-2 text-xs"
+                    >
+                        <div class="text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1">
+                            Platos y Bebidas Solicitadas
+                        </div>
+
+                        <div
+                            v-for="it in (pedido.items || [])"
+                            :key="it.id"
+                            class="bg-white p-2.5 rounded-xl border border-stone-200 flex items-center justify-between gap-2"
+                        >
+                            <div class="flex-1 min-w-0">
+                                <span class="font-bold text-stone-800">{{ it.nombre }}</span>
+                                <span class="text-[11px] text-stone-500 ml-1">x{{ it.cantidad }}</span>
+                                <div v-if="it.notas" class="text-[11px] text-orange-700 font-semibold italic mt-0.5">
+                                    Nota: {{ it.notas }}
+                                </div>
+                            </div>
+                            <span class="font-mono font-bold text-stone-900">${{ formatearMoneda(it.total) }}</span>
+                        </div>
+
+                        <div v-if="pedido.notas" class="text-xs text-amber-900 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
+                            💬 <strong>Nota del pedido:</strong> {{ pedido.notas }}
+                        </div>
+
+                        <div class="pt-2 flex justify-between font-bold text-stone-700 border-t border-stone-200/60 text-xs">
+                            <span>Subtotal: ${{ formatearMoneda(pedido.subtotal) }} &bull; Impuestos: ${{ formatearMoneda(pedido.impuestos) }}</span>
+                            <span class="text-stone-900">Total: ${{ formatearMoneda(pedido.total) }}</span>
                         </div>
                     </div>
                 </div>
@@ -149,6 +194,11 @@ const props = defineProps({
 const mostrarModalCancelar = ref(false);
 const pedidoACancelar = ref(null);
 const motivoCancelacion = ref('');
+const acordeonesAbiertos = ref({});
+
+function toggleAcordeon(id) {
+    acordeonesAbiertos.value[id] = !acordeonesAbiertos.value[id];
+}
 
 function matchBadgeClass(estado) {
     switch (estado) {

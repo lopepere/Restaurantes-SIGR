@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Sucursal;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -44,6 +45,8 @@ class HandleInertiaRequests extends Middleware
                     'id' => $user->id,
                     'name' => $user->nombre,
                     'email' => $user->email,
+                    'telefono' => $user->telefono,
+                    'direccion' => $user->direccion,
                     'roles' => $user->getRoleNames(),
                     'dashboard_url' => $user->dashboardUrl(),
                 ] : null,
@@ -53,7 +56,12 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
             ],
-            'sucursal_activa_id' => fn () => $request->session()->get('sucursal_id'),
+            'sucursal_activa_id' => fn () => $request->session()->get('sucursal_id', $request->session()->get('sucursal_activa_id')),
+            'sucursales_usuario' => fn () => $user ? (
+                $user->hasRole('super_admin')
+                    ? Sucursal::where('activa', true)->orderBy('nombre')->get(['id', 'nombre', 'slug', 'acepta_domicilios', 'acepta_para_llevar', 'acepta_en_sitio'])
+                    : $user->sucursales()->where('activa', true)->orderBy('nombre')->get(['sucursales.id', 'sucursales.nombre', 'sucursales.slug'])
+            ) : [],
             'locale' => fn () => app()->getLocale(),
         ];
     }

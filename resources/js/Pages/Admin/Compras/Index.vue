@@ -344,35 +344,95 @@
             </div>
         </div>
 
-        <!-- Modal Devolver Compra (RF-COM-07) -->
-        <div v-if="modalDevolverAbierto" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-            <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-stone-200 space-y-4">
+        <!-- Modal Devolver Compra (RF-COM-07, Item 4) -->
+        <div v-if="modalDevolverAbierto" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-stone-200 space-y-4">
                 <div class="flex items-center justify-between border-b border-stone-100 pb-3">
-                    <h3 class="font-bold text-base text-stone-900">
-                        Devolución Factura #{{ compraSeleccionada?.numero_factura }}
-                    </h3>
+                    <div>
+                        <h3 class="font-black text-base text-stone-900">
+                            Devolución Factura #{{ compraSeleccionada?.numero_factura }}
+                        </h3>
+                        <p class="text-[11px] text-stone-500">Proveedor: {{ compraSeleccionada?.proveedor }}</p>
+                    </div>
                     <button @click="modalDevolverAbierto = false" class="text-stone-400 hover:text-stone-600">✕</button>
                 </div>
                 <form @submit.prevent="ejecutarDevolucion" class="space-y-4 text-xs">
-                    <p class="text-stone-600">
-                        Se registrará la devolución formal al proveedor y se restarán las existencias del inventario.
-                    </p>
+                    <!-- Selector de Tipo de Devolución -->
+                    <div class="space-y-1">
+                        <label class="block font-bold text-stone-700">Modalidad de Devolución:</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                @click="tipoDevolucion = 'total'"
+                                :class="[
+                                    'py-2 px-3 rounded-xl border font-bold text-xs transition text-center',
+                                    tipoDevolucion === 'total'
+                                        ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                                        : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
+                                ]"
+                            >
+                                📦 Devolver Orden Completa
+                            </button>
+                            <button
+                                type="button"
+                                @click="tipoDevolucion = 'parcial'"
+                                :class="[
+                                    'py-2 px-3 rounded-xl border font-bold text-xs transition text-center',
+                                    tipoDevolucion === 'parcial'
+                                        ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                                        : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
+                                ]"
+                            >
+                                🔍 Devolver Productos Específicos
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Lista de productos si es parcial -->
+                    <div v-if="tipoDevolucion === 'parcial'" class="p-3 bg-stone-50 rounded-2xl border border-stone-200 space-y-2">
+                        <label class="block font-bold text-stone-800">Selecciona los productos y unidades a devolver:</label>
+                        <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                            <div
+                                v-for="item in itemsParaDevolver"
+                                :key="item.compra_item_id"
+                                class="bg-white p-2.5 rounded-xl border border-stone-200 flex items-center justify-between gap-3"
+                            >
+                                <div class="flex-1 min-w-0">
+                                    <span class="font-bold text-stone-900 block truncate">{{ item.descripcion }}</span>
+                                    <span class="text-[10px] text-stone-500">Comprado: {{ item.cantidad_original }} unid.</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <label class="text-[11px] text-stone-600 font-medium">Devolver:</label>
+                                    <input
+                                        type="number"
+                                        v-model.number="item.cantidad"
+                                        min="0"
+                                        :max="item.cantidad_original"
+                                        step="0.1"
+                                        class="w-20 rounded-lg border border-stone-300 p-1 text-xs font-mono font-bold text-right"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div>
                         <label for="motivo_devolver" class="block font-semibold text-stone-700 mb-1">Motivo de la Devolución *</label>
                         <textarea
                             id="motivo_devolver"
                             v-model="formDevolver.motivo"
-                            rows="3"
-                            placeholder="Ej. Producto en mal estado, vencimiento próximo..."
+                            rows="2"
+                            placeholder="Ej. Producto en mal estado, vencimiento próximo o error en remisión..."
                             class="w-full rounded-xl border border-stone-300 p-2.5 text-xs text-stone-800"
                             required
                         ></textarea>
                     </div>
+
                     <div class="flex justify-end space-x-2 pt-2 border-t border-stone-100">
                         <button type="button" @click="modalDevolverAbierto = false" class="px-4 py-2 rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-50">
                             Cancelar
                         </button>
-                        <button type="submit" :disabled="formDevolver.processing" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold transition">
+                        <button type="submit" :disabled="formDevolver.processing" class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold transition shadow-xs">
                             {{ formDevolver.processing ? 'Devolviendo...' : 'Confirmar Devolución' }}
                         </button>
                     </div>
@@ -514,18 +574,39 @@ const ejecutarAnulacion = () => {
     });
 };
 
-// Modal Devolver
+// Modal Devolver (Item 4)
 const modalDevolverAbierto = ref(false);
-const formDevolver = useForm({ motivo: '' });
+const tipoDevolucion = ref('total');
+const itemsParaDevolver = ref([]);
+const formDevolver = useForm({
+    motivo: '',
+    tipo: 'total',
+    items: [],
+});
 
 const abrirModalDevolver = (compra) => {
     compraSeleccionada.value = compra;
+    tipoDevolucion.value = 'total';
+    itemsParaDevolver.value = (compra.items || []).map(it => ({
+        compra_item_id: it.id,
+        descripcion: it.descripcion,
+        cantidad_original: it.cantidad,
+        cantidad: it.cantidad,
+    }));
     formDevolver.reset();
+    formDevolver.tipo = 'total';
+    formDevolver.items = [];
     modalDevolverAbierto.value = true;
 };
 
 const ejecutarDevolucion = () => {
     if (!compraSeleccionada.value) return;
+
+    formDevolver.tipo = tipoDevolucion.value;
+    formDevolver.items = tipoDevolucion.value === 'parcial'
+        ? itemsParaDevolver.value.filter(it => it.cantidad > 0)
+        : [];
+
     formDevolver.post(`/admin/compras/${compraSeleccionada.value.id}/devolver`, {
         preserveScroll: true,
         onSuccess: () => { modalDevolverAbierto.value = false; },

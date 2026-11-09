@@ -13,7 +13,23 @@
                 </Link>
             </div>
 
-            <!-- Accesos Rápidos de Navegación -->
+            <!-- Selector de Sucursal Activa Persistente -->
+            <div v-if="$page.props.sucursales_usuario && $page.props.sucursales_usuario.length > 1" class="p-3 border-b border-stone-800">
+                <label class="block text-[11px] font-semibold text-stone-400 mb-1">Sucursal Activa</label>
+                <select
+                    :value="$page.props.sucursal_activa_id"
+                    @change="cambiarSucursal($event.target.value)"
+                    class="w-full bg-stone-800 border border-stone-700 text-white text-xs rounded-lg px-2.5 py-1.5 focus:ring-orange-500 focus:border-orange-500 cursor-pointer"
+                >
+                    <option
+                        v-for="s in $page.props.sucursales_usuario"
+                        :key="s.id"
+                        :value="s.id"
+                    >
+                        🏢 {{ s.nombre }}
+                    </option>
+                </select>
+            </div>
             <div class="p-3 border-b border-stone-800 space-y-2">
                 <Link
                     href="/"
@@ -136,7 +152,17 @@ import { ref, computed, onMounted } from 'vue';
 import { router, Link, usePage } from '@inertiajs/vue3';
 
 const page = usePage();
-const sucursalNombre = ref('Sede Centro');
+const sucursalNombre = computed(() => {
+    const actId = page.props.sucursal_activa_id;
+    const found = page.props.sucursales_usuario?.find(s => s.id == actId);
+    return found ? found.nombre : 'Sede Operativa';
+});
+
+function cambiarSucursal(id) {
+    router.post('/admin/seleccionar-sucursal', { sucursal_id: id }, {
+        preserveScroll: true,
+    });
+}
 
 const esSuperAdmin = computed(() => {
     return page.props.auth?.user?.roles?.includes('super_admin');

@@ -25,16 +25,22 @@
                 </Link>
             </div>
 
-            <!-- Selector Global de Sucursales -->
+            <!-- Selector Global de Sucursales (Persistente) -->
             <div class="p-3 border-b border-stone-800">
-                <label class="block text-xs font-medium text-stone-400 mb-1">Sucursal Activa</label>
+                <label class="block text-xs font-semibold text-stone-400 mb-1">Sucursal Activa (Persistente)</label>
                 <select
-                    v-model="sucursalSeleccionada"
-                    class="w-full bg-stone-900 border border-stone-700 text-white text-xs rounded-lg px-2.5 py-1.5 focus:ring-amber-500 focus:border-amber-500"
+                    :value="$page.props.sucursal_activa_id || 'todas'"
+                    @change="cambiarSucursal($event.target.value)"
+                    class="w-full bg-stone-900 border border-stone-700 text-white text-xs rounded-lg px-2.5 py-1.5 focus:ring-amber-500 focus:border-amber-500 cursor-pointer"
                 >
                     <option value="todas">-- Todas las sedes (Global) --</option>
-                    <option value="1">Sede Centro</option>
-                    <option value="2">Sede Norte</option>
+                    <option
+                        v-for="s in $page.props.sucursales_usuario"
+                        :key="s.id"
+                        :value="s.id"
+                    >
+                        🏢 {{ s.nombre }}
+                    </option>
                 </select>
             </div>
 
@@ -187,6 +193,12 @@ onMounted(() => {
         sessionStorage.setItem('sigr_dashboard', page.props.auth.user.dashboard_url || '/superadmin');
     }
 });
+
+function cambiarSucursal(id) {
+    router.post('/admin/seleccionar-sucursal', { sucursal_id: id }, {
+        preserveScroll: true,
+    });
+}
 
 function logout() {
     if (typeof window !== 'undefined') {

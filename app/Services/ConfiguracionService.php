@@ -80,4 +80,72 @@ class ConfiguracionService
             Cache::forget("cfg_global_{$clave}");
         }
     }
+
+    /**
+     * Retorna el catálogo dinámico de impuestos configurados en el sistema (Item 1).
+     *
+     * @return array<int, array{id: string, codigo: string, nombre: string, porcentaje: float, descripcion: string, activo: bool}>
+     */
+    public static function catalogoImpuestos(): array
+    {
+        $raw = self::get('impuestos.catalogo');
+        if (is_array($raw)) {
+            /** @var array<int, array{id: string, codigo: string, nombre: string, porcentaje: float, descripcion: string, activo: bool}> $raw */
+            return $raw;
+        }
+
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                /** @var array<int, array{id: string, codigo: string, nombre: string, porcentaje: float, descripcion: string, activo: bool}> $decoded */
+                return $decoded;
+            }
+        }
+
+        // Catálogo base por defecto (Colombia)
+        return [
+            [
+                'id' => 'inc_8',
+                'codigo' => 'INC',
+                'nombre' => 'Impuesto Nacional al Consumo (INC)',
+                'porcentaje' => 8.0,
+                'descripcion' => 'Tarifa general de comidas y bebidas en restaurantes',
+                'activo' => true,
+            ],
+            [
+                'id' => 'iva_19',
+                'codigo' => 'IVA_19',
+                'nombre' => 'Impuesto al Valor Agregado (IVA 19%)',
+                'porcentaje' => 19.0,
+                'descripcion' => 'Tarifa general para productos gravados con IVA',
+                'activo' => true,
+            ],
+            [
+                'id' => 'iva_5',
+                'codigo' => 'IVA_5',
+                'nombre' => 'IVA Reducido (5%)',
+                'porcentaje' => 5.0,
+                'descripcion' => 'Tarifa diferencial para insumos y productos específicos',
+                'activo' => true,
+            ],
+            [
+                'id' => 'exento_0',
+                'codigo' => 'EXENTO',
+                'nombre' => 'Exento / Excluido (0%)',
+                'porcentaje' => 0.0,
+                'descripcion' => 'Productos exentos o excluidos de gravámenes',
+                'activo' => true,
+            ],
+        ];
+    }
+
+    /**
+     * Guarda el catálogo dinámico de impuestos en la configuración global.
+     *
+     * @param  array<int, array<string, mixed>>  $catalogo
+     */
+    public static function guardarCatalogoImpuestos(array $catalogo): void
+    {
+        self::set('impuestos.catalogo', json_encode(array_values($catalogo)));
+    }
 }

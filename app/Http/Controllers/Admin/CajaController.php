@@ -9,12 +9,17 @@ use App\Enums\EstadoPedido;
 use App\Enums\EstadoSesionCaja;
 use App\Http\Controllers\Controller;
 use App\Models\Caja;
+use App\Models\Comprobante;
+use App\Models\DevolucionCompra;
 use App\Models\Pago;
 use App\Models\Pedido;
+use App\Models\PedidoItem;
 use App\Models\SesionCaja;
 use App\Models\Sucursal;
+use App\Services\ConfiguracionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -34,7 +39,12 @@ class CajaController extends Controller
 
         $primeraSucursal = $sucursales->first();
         $primerId = $primeraSucursal ? $primeraSucursal->id : 1;
-        $sucursalId = (int) $request->input('sucursal_id', session('sucursal_activa_id', $primerId));
+        $sucursalId = (int) $request->input('sucursal_id', session('sucursal_id', session('sucursal_activa_id', $primerId)));
+
+        session([
+            'sucursal_id' => $sucursalId,
+            'sucursal_activa_id' => $sucursalId,
+        ]);
 
         if (! $esSuperAdmin && ! in_array($sucursalId, $user->sucursalIds(), true)) {
             abort(403, 'No tienes autorización para acceder a las cajas de esta sucursal.');
@@ -88,12 +98,12 @@ class CajaController extends Controller
                 ]);
         }
 
-        // Pedidos pendientes de pago en la sucursal
+        // Pedidos pendientes de pago en la sucursal (con desglose de ítems para acordeón)
         $pedidosPorCobrar = Pedido::withoutGlobalScopes()
             ->where('sucursal_id', $sucursalId)
             ->where('pagado', false)
             ->where('estado', '!=', EstadoPedido::CANCELADO)
-            ->with(['espacio'])
+            ->with(['espacio', 'items' => fn ($q) => $q->where('anulado', false)])
             ->orderBy('id')
             ->limit(30)
             ->get()
@@ -107,6 +117,46 @@ class CajaController extends Controller
                 'impuestos' => (float) $ped->impuestos,
                 'propina' => (float) $ped->propina,
                 'total' => (float) $ped->total,
+                'items' => $ped->items->map(fn (PedidoItem $it) => [
+                    'id' => $it->id,
+                    'nombre' => $it->nombre_item,
+                    'cantidad' => (float) $it->cantidad,
+                    'precio_unitario' => (float) $it->precio_unitario,
+                    'total' => (float) $it->total,
+                    'notas' => $it->notas,
+                ]),
+            ]);
+
+        // Facturas recientemente anuladas y devoluciones en tiempo real (Item 11)
+        $facturasAnuladasRecientes = Comprobante::where('sucursal_id', $sucursalId)
+            ->where('estado', 'anulado')
+            ->with(['anuladoPor'])
+            ->orderByDesc('anulado_at')
+            ->limit(10)
+            ->get()
+            ->map(fn (Comprobante $c) => [
+                'id' => $c->id,
+                'numero' => $c->numero,
+                'cliente' => $c->cliente_nombre,
+                'total' => (float) $c->total,
+                'anulado_at' => $c->anulado_at ? $c->anulado_at->format('d/m H:i') : '-',
+                'motivo' => $c->motivo_anulacion,
+                'anulado_por' => $c->anuladoPor->nombre ?? 'Sistema',
+            ]);
+
+        $devolucionesRecientes = DevolucionCompra::where('sucursal_id', $sucursalId)
+            ->with(['compra', 'user'])
+            ->orderByDesc('created_at')
+            ->limit(10)
+            ->get()
+            ->map(fn (DevolucionCompra $d) => [
+                'id' => $d->id,
+                'factura_compra' => $d->compra?->numero_factura,
+                'total_devuelto' => (float) $d->total_devuelto,
+                'tipo' => $d->tipo,
+                'motivo' => $d->motivo,
+                'fecha' => $d->fecha_devolucion->format('d/m H:i'),
+                'usuario' => $d->user?->nombre,
             ]);
 
         // Historial de cierres de caja recientes
@@ -128,12 +178,17 @@ class CajaController extends Controller
                 'diferencia' => (float) $s->diferencia,
             ]);
 
+        $baseConfigurada = (float) ConfiguracionService::obtener('caja.base_efectivo_inicial', $sucursalId, 100000.0);
+
         return Inertia::render('Admin/Caja/Index', [
             'cajas' => $cajas,
             'sesionActiva' => $resumenSesion,
             'pagosSesion' => $pagosSesion,
             'pedidosPorCobrar' => $pedidosPorCobrar,
             'cierresRecientes' => $cierresRecientes,
+            'facturasAnuladasRecientes' => $facturasAnuladasRecientes,
+            'devolucionesRecientes' => $devolucionesRecientes,
+            'base_efectivo_inicial' => $baseConfigurada,
             'sucursales' => $sucursales,
             'sucursal_id' => $sucursalId,
         ]);
@@ -218,5 +273,73 @@ class CajaController extends Controller
         Caja::create($validated);
 
         return back()->with('success', 'Caja creada exitosamente.');
+    }
+
+    /**
+     * Configura el parámetro de base en efectivo inicial para los turnos de caja (Item 6).
+     */
+    public function configurarBase(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'base_efectivo_inicial' => ['required', 'numeric', 'min:0'],
+            'sucursal_id' => ['nullable', 'exists:sucursales,id'],
+        ]);
+
+        $sucursalId = $validated['sucursal_id'] ?? session('sucursal_id');
+        ConfiguracionService::set('caja.base_efectivo_inicial', (float) $validated['base_efectivo_inicial'], $sucursalId);
+
+        return back()->with('success', 'Base inicial en efectivo de caja actualizada correctamente.');
+    }
+
+    /**
+     * Anula un ítem mal facturado de una comanda antes del cobro, con auditoría (Item 11).
+     */
+    public function anularItem(Request $request, Pedido $pedido, PedidoItem $item): RedirectResponse
+    {
+        $validated = $request->validate([
+            'motivo' => ['required', 'string', 'min:3', 'max:255'],
+        ]);
+
+        if ($pedido->pagado) {
+            return back()->with('error', 'No se pueden anular ítems de un pedido que ya fue pagado.');
+        }
+
+        DB::transaction(function () use ($pedido, $item, $validated, $request) {
+            $item->anulado = true;
+            $item->motivo_anulacion = $validated['motivo'];
+            $item->anulado_por_id = $request->user()->id;
+            $item->save();
+
+            // Revertir inventario si el ítem controlaba inventario
+            if ($item->item_menu_id && $item->itemMenu && $item->itemMenu->controla_inventario) {
+                $item->itemMenu->increment('existencia', (float) $item->cantidad);
+            }
+
+            // Recalcular subtotal, impuestos y total de la comanda
+            $itemsActivos = $pedido->items()->where('anulado', false)->get();
+            $subtotal = (float) $itemsActivos->sum('subtotal');
+            $impuestos = (float) $itemsActivos->sum('impuesto_monto');
+            $total = (float) $itemsActivos->sum('total') + (float) $pedido->propina;
+
+            $pedido->update([
+                'subtotal' => $subtotal,
+                'impuestos' => $impuestos,
+                'total' => $total,
+            ]);
+
+            activity('caja')
+                ->performedOn($item)
+                ->causedBy($request->user())
+                ->withProperties([
+                    'pedido_id' => $pedido->id,
+                    'pedido_numero' => $pedido->numero,
+                    'item_nombre' => $item->nombre_item,
+                    'cantidad' => (float) $item->cantidad,
+                    'motivo' => $validated['motivo'],
+                ])
+                ->log("Ítem '{$item->nombre_item}' anulado del Pedido #{$pedido->numero}. Motivo: {$validated['motivo']}");
+        });
+
+        return back()->with('success', "Ítem '{$item->nombre_item}' anulado del pedido correctamente.");
     }
 }

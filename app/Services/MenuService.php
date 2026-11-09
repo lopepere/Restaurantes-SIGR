@@ -76,9 +76,10 @@ class MenuService
                 $promocionAplicada = null;
 
                 foreach ($promocionesVigentes as $promo) {
+                    $aplicaPorCategoria = ! $item->excluir_descuentos_categoria && $promo->categorias->contains('id', $categoria->id);
                     $aplica = $promo->aplica_a_todo
                         || $promo->items->contains('id', $item->id)
-                        || $promo->categorias->contains('id', $categoria->id);
+                        || $aplicaPorCategoria;
 
                     if ($aplica) {
                         $precioCalculado = $promo->calcularPrecioPromocional($precioOriginal);

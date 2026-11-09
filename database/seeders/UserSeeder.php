@@ -109,6 +109,48 @@ class UserSeeder extends Seeder
             }
         }
 
+        // 3b. Cajero (cajero@sigr.test)
+        $cajero = User::firstOrCreate(
+            ['email' => 'cajero@sigr.test'],
+            [
+                'nombre' => 'Camila Cajera',
+                'telefono' => '+573004445566',
+                'direccion' => 'Carrera 45 # 50-20, Medellín',
+                'password' => Hash::make('password'),
+                'avatar' => AvatarService::generar('Camila Cajera'),
+                'idioma' => 'es',
+                'activo' => true,
+                'origen' => OrigenUsuario::PERSONAL,
+                'email_verified_at' => now(),
+                'politica_aceptada_at' => now(),
+            ]
+        );
+        if ($sucursalCentro) {
+            $cajero->sucursales()->syncWithoutDetaching([$sucursalCentro->id]);
+            $cajero->assignRole('cajero');
+        }
+
+        // 3c. Cocinero (cocina@sigr.test)
+        $cocinero = User::firstOrCreate(
+            ['email' => 'cocina@sigr.test'],
+            [
+                'nombre' => 'Mateo Cocinero',
+                'telefono' => '+573005556677',
+                'direccion' => 'Calle 10 # 40-15, Medellín',
+                'password' => Hash::make('password'),
+                'avatar' => AvatarService::generar('Mateo Cocinero'),
+                'idioma' => 'es',
+                'activo' => true,
+                'origen' => OrigenUsuario::PERSONAL,
+                'email_verified_at' => now(),
+                'politica_aceptada_at' => now(),
+            ]
+        );
+        if ($sucursalCentro) {
+            $cocinero->sucursales()->syncWithoutDetaching([$sucursalCentro->id]);
+            $cocinero->assignRole('cocinero');
+        }
+
         // 4. Cliente creado a partir de Pedido
         $cliente = User::firstOrCreate(
             ['email' => 'cliente@sigr.test'],

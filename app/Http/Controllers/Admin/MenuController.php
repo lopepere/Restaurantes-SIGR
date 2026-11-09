@@ -12,6 +12,7 @@ use App\Models\ComboItem;
 use App\Models\ItemMenu;
 use App\Models\Sucursal;
 use App\Models\User;
+use App\Services\ConfiguracionService;
 use App\Services\MenuService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -78,6 +79,7 @@ class MenuController extends Controller
             'otrasSucursales' => $otrasSucursales,
             'filtros' => $request->only(['buscar', 'categoria_id']),
             'tiposImpuesto' => array_column(TipoImpuesto::cases(), 'value'),
+            'catalogoImpuestos' => ConfiguracionService::catalogoImpuestos(),
         ]);
     }
 
@@ -168,6 +170,7 @@ class MenuController extends Controller
             'impuesto_tipo' => ['required', new Enum(TipoImpuesto::class)],
             'impuesto_porcentaje' => ['required', 'numeric', 'min:0', 'max:100'],
             'es_combo' => ['nullable', 'boolean'],
+            'excluir_descuentos_categoria' => ['nullable', 'boolean'],
             'controla_inventario' => ['nullable', 'boolean'],
             'existencia' => ['nullable', 'numeric', 'min:0'],
             'existencia_minima' => ['nullable', 'numeric', 'min:0'],
@@ -188,6 +191,7 @@ class MenuController extends Controller
             'impuesto_tipo' => $validated['impuesto_tipo'],
             'impuesto_porcentaje' => $validated['impuesto_porcentaje'],
             'es_combo' => $validated['es_combo'] ?? false,
+            'excluir_descuentos_categoria' => $validated['excluir_descuentos_categoria'] ?? false,
             'controla_inventario' => $validated['controla_inventario'] ?? true,
             'existencia' => $validated['existencia'] ?? 0,
             'existencia_minima' => $validated['existencia_minima'] ?? 5,
@@ -223,6 +227,7 @@ class MenuController extends Controller
             'impuesto_tipo' => ['required', new Enum(TipoImpuesto::class)],
             'impuesto_porcentaje' => ['required', 'numeric', 'min:0', 'max:100'],
             'es_combo' => ['required', 'boolean'],
+            'excluir_descuentos_categoria' => ['nullable', 'boolean'],
             'controla_inventario' => ['required', 'boolean'],
             'existencia' => ['nullable', 'numeric', 'min:0'],
             'existencia_minima' => ['nullable', 'numeric', 'min:0'],
@@ -243,6 +248,7 @@ class MenuController extends Controller
             'impuesto_tipo' => $validated['impuesto_tipo'],
             'impuesto_porcentaje' => $validated['impuesto_porcentaje'],
             'es_combo' => $validated['es_combo'],
+            'excluir_descuentos_categoria' => $validated['excluir_descuentos_categoria'] ?? false,
             'controla_inventario' => $validated['controla_inventario'],
             'existencia' => $validated['existencia'] ?? 0,
             'existencia_minima' => $validated['existencia_minima'] ?? 5,

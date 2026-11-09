@@ -26,6 +26,7 @@ class ConfiguracionController extends Controller
                 'propina_preseleccionar' => (bool) ConfiguracionService::obtener('propina.preseleccionar', null, false),
                 'reserva_duracion_minutos' => (int) ConfiguracionService::obtener('reserva.duracion_minutos', null, 120),
                 'reserva_aprobacion_automatica' => (bool) ConfiguracionService::obtener('reserva.aprobacion_automatica', null, false),
+                'caja_base_efectivo_inicial' => (float) ConfiguracionService::obtener('caja.base_efectivo_inicial', null, 100000.0),
             ],
         ]);
     }
@@ -42,7 +43,28 @@ class ConfiguracionController extends Controller
                 'regimen' => (string) ConfiguracionService::obtener('impuestos.regimen', null, 'Responsable de IVA / INC'),
                 'precios_con_impuesto' => (bool) ConfiguracionService::obtener('impuestos.precios_con_impuesto', null, true),
             ],
+            'catalogo' => ConfiguracionService::catalogoImpuestos(),
         ]);
+    }
+
+    /**
+     * Guarda el catálogo dinámico de impuestos (Item 1).
+     */
+    public function guardarCatalogo(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'catalogo' => 'required|array',
+            'catalogo.*.id' => 'required|string',
+            'catalogo.*.codigo' => 'required|string|max:20',
+            'catalogo.*.nombre' => 'required|string|max:100',
+            'catalogo.*.porcentaje' => 'required|numeric|min:0|max:100',
+            'catalogo.*.descripcion' => 'nullable|string|max:255',
+            'catalogo.*.activo' => 'required|boolean',
+        ]);
+
+        ConfiguracionService::guardarCatalogoImpuestos($validated['catalogo']);
+
+        return back()->with('success', 'Catálogo tributario e impuestos actualizados correctamente.');
     }
 
     /**
@@ -59,6 +81,12 @@ class ConfiguracionController extends Controller
             if ($clave === 'modo_inventario') {
                 $modoEnum = ModoInventario::tryFrom((string) $valor) ?? ModoInventario::AUTONOMO;
                 ConfiguracionService::set('inventario.modo', $modoEnum->value);
+
+                continue;
+            }
+
+            if ($clave === 'caja_base_efectivo_inicial') {
+                ConfiguracionService::set('caja.base_efectivo_inicial', (float) $valor);
 
                 continue;
             }

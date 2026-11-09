@@ -4,7 +4,7 @@
             <!-- Encabezado -->
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 class="text-2xl font-extrabold tracking-tight text-stone-900 flex items-center space-x-2">
+                    <h1 class="text-2xl font-black tracking-tight text-stone-900 flex items-center space-x-2">
                         <span>💵</span>
                         <span>Caja y Turnos</span>
                     </h1>
@@ -14,18 +14,29 @@
                 </div>
 
                 <!-- Acciones Superiores -->
-                <div class="flex items-center space-x-3">
+                <div class="flex flex-wrap items-center gap-2">
                     <div v-if="sucursales && sucursales.length > 1">
                         <select
                             v-model="sucursalSeleccionada"
                             @change="cambiarSucursal"
-                            class="rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 shadow-xs focus:ring-1 focus:ring-orange-500"
+                            class="rounded-xl border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-700 shadow-xs focus:ring-1 focus:ring-orange-500 cursor-pointer"
                         >
                             <option v-for="s in sucursales" :key="s.id" :value="s.id">
                                 🏢 {{ s.nombre }}
                             </option>
                         </select>
                     </div>
+
+                    <!-- Botón Configurar Base de Caja (Item 6) -->
+                    <button
+                        type="button"
+                        @click="modalConfigurarBaseAbierto = true"
+                        class="px-3.5 py-2 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold shadow-xs transition flex items-center gap-1.5"
+                        title="Configurar base inicial en efectivo por defecto"
+                    >
+                        <span>⚙️ Base:</span>
+                        <span class="font-mono">${{ base_efectivo_inicial.toLocaleString() }}</span>
+                    </button>
 
                     <button
                         v-if="!sesionActiva"
@@ -48,7 +59,7 @@
             </div>
 
             <!-- Tarjeta de Estado del Turno Activo -->
-            <div v-if="sesionActiva" class="bg-white rounded-3xl border border-stone-200 shadow-sm p-6 space-y-4">
+            <div v-if="sesionActiva" class="bg-white rounded-3xl border border-stone-200 shadow-xs p-6 space-y-4">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-stone-100 pb-4">
                     <div>
                         <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200 mb-1">
@@ -90,60 +101,100 @@
             </div>
 
             <!-- Alerta si no hay turno abierto -->
-            <div v-else class="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center text-xs text-amber-900">
+            <div v-else class="bg-amber-50 border border-amber-200 rounded-3xl p-6 text-center text-xs text-amber-900">
                 <span class="text-3xl block mb-2">🔒</span>
                 <h3 class="font-bold text-sm">No hay un turno de caja abierto en esta sucursal</h3>
                 <p class="mt-1 text-stone-600">
-                    Abre un turno con el saldo base inicial para poder registrar cobros y pagos de comandas.
+                    Abre un turno con la base inicial (${{ base_efectivo_inicial.toLocaleString() }}) para poder registrar cobros y pagos de comandas.
                 </p>
                 <button
                     type="button"
                     @click="abrirModalApertura"
-                    class="mt-3 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold transition shadow-xs"
+                    class="mt-3 px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold transition shadow-xs"
                 >
                     + Abrir Turno Ahora
                 </button>
             </div>
 
-            <!-- Grilla: Pedidos por Cobrar y Pagos Recientes -->
+            <!-- Grilla: Pedidos por Cobrar con Acordeón y Pagos Recientes -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Columna Izquierda: Pedidos Pendientes de Pago -->
-                <div class="bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
-                    <div class="p-4 border-b border-stone-100 flex items-center justify-between">
-                        <h3 class="font-bold text-sm text-stone-900">Comandas Pendientes de Pago</h3>
-                        <span class="text-xs text-stone-400 font-mono">{{ pedidosPorCobrar.length }} pendiente(s)</span>
+                <!-- Columna Izquierda: Pedidos Pendientes de Pago con Acordeón (Item 11) -->
+                <div class="bg-white rounded-3xl border border-stone-200 shadow-xs overflow-hidden">
+                    <div class="p-5 border-b border-stone-100 flex items-center justify-between">
+                        <div>
+                            <h3 class="font-bold text-sm text-stone-900 flex items-center gap-1.5">
+                                <span>🛎️</span>
+                                <span>Comandas Pendientes de Pago</span>
+                            </h3>
+                            <p class="text-[11px] text-stone-400">Toca la flecha para desplegar y verificar o anular ítems.</p>
+                        </div>
+                        <span class="text-xs text-stone-500 font-mono font-bold">{{ pedidosPorCobrar.length }} pendiente(s)</span>
                     </div>
 
-                    <div class="divide-y divide-stone-100 max-h-96 overflow-y-auto">
+                    <div class="divide-y divide-stone-100 max-h-[500px] overflow-y-auto">
                         <div
                             v-for="ped in pedidosPorCobrar"
                             :key="ped.id"
-                            class="p-4 flex items-center justify-between hover:bg-stone-50/70 transition"
+                            class="p-4 hover:bg-stone-50/70 transition space-y-2"
                         >
-                            <div>
-                                <span class="font-mono font-bold text-xs text-orange-600 block">
-                                    {{ ped.numero }}
-                                </span>
-                                <span class="text-xs font-semibold text-stone-800">
-                                    {{ ped.mesa ? `🪑 ${ped.mesa}` : ped.tipo }} — {{ ped.cliente }}
-                                </span>
-                                <span class="text-[11px] text-stone-500 block font-mono">
-                                    Subtotal: ${{ ped.subtotal.toLocaleString() }} + Imp: ${{ ped.impuestos.toLocaleString() }}
-                                </span>
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        @click="toggleAcordeon(ped.id)"
+                                        class="w-6 h-6 rounded-md bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-xs font-bold text-stone-600"
+                                        title="Ver platos"
+                                    >
+                                        <span :class="{'rotate-180': acordeonesAbiertos[ped.id]}" class="transition-transform duration-200">▼</span>
+                                    </button>
+                                    <div>
+                                        <span class="font-mono font-bold text-xs text-orange-600 block">
+                                            {{ ped.numero }}
+                                        </span>
+                                        <span class="text-xs font-semibold text-stone-800">
+                                            {{ ped.mesa ? `🪑 ${ped.mesa}` : ped.tipo }} &bull; {{ ped.cliente }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="text-right space-y-1">
+                                    <span class="text-sm font-black font-mono text-stone-900 block">
+                                        ${{ ped.total.toLocaleString() }}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        :disabled="!sesionActiva"
+                                        @click="abrirModalPago(ped)"
+                                        class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold shadow-xs transition"
+                                    >
+                                        Cobrar 💳
+                                    </button>
+                                </div>
                             </div>
 
-                            <div class="text-right space-y-1.5">
-                                <span class="text-sm font-black font-mono text-stone-900 block">
-                                    ${{ ped.total.toLocaleString() }}
-                                </span>
-                                <button
-                                    type="button"
-                                    :disabled="!sesionActiva"
-                                    @click="abrirModalPago(ped)"
-                                    class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold shadow-xs transition"
+                            <!-- Acordeón de Ítems de la Comanda -->
+                            <div v-if="acordeonesAbiertos[ped.id]" class="mt-2 pt-2 border-t border-stone-200/80 bg-stone-50/80 rounded-xl p-3 space-y-1.5 text-xs">
+                                <div
+                                    v-for="it in ped.items"
+                                    :key="it.id"
+                                    class="bg-white p-2 rounded-lg border border-stone-200 flex items-center justify-between gap-2"
                                 >
-                                    Cobrar 💳
-                                </button>
+                                    <div class="flex-1 truncate">
+                                        <span class="font-bold text-stone-800">{{ it.nombre }}</span>
+                                        <span class="text-[11px] text-stone-500 ml-1">({{ it.cantidad }}x)</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-mono font-bold">${{ it.total.toLocaleString() }}</span>
+                                        <button
+                                            type="button"
+                                            @click="abrirModalAnularItem(ped, it)"
+                                            class="text-rose-600 hover:text-rose-800 font-bold text-[11px] px-1.5 py-0.5 rounded-md bg-rose-50"
+                                            title="Anular ítem mal facturado"
+                                        >
+                                            Anular
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -153,13 +204,17 @@
                     </div>
                 </div>
 
-                <!-- Columna Derecha: Pagos Registrados en la Sesión -->
-                <div class="bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
-                    <div class="p-4 border-b border-stone-100">
-                        <h3 class="font-bold text-sm text-stone-900">Cobros Registrados en el Turno</h3>
+                <!-- Columna Derecha: Cobros Registrados en el Turno -->
+                <div class="bg-white rounded-3xl border border-stone-200 shadow-xs overflow-hidden">
+                    <div class="p-5 border-b border-stone-100 flex items-center justify-between">
+                        <h3 class="font-bold text-sm text-stone-900 flex items-center gap-1.5">
+                            <span>🧾</span>
+                            <span>Cobros Realizados en este Turno</span>
+                        </h3>
+                        <span class="text-xs text-stone-400 font-mono">{{ pagosSesion.length }} pago(s)</span>
                     </div>
 
-                    <div class="divide-y divide-stone-100 max-h-96 overflow-y-auto">
+                    <div class="divide-y divide-stone-100 max-h-[500px] overflow-y-auto">
                         <div
                             v-for="pago in pagosSesion"
                             :key="pago.id"
@@ -179,44 +234,136 @@
                         </div>
 
                         <div v-if="pagosSesion.length === 0" class="p-8 text-center text-stone-400 text-xs">
-                            Aún no se han registrado cobros en este turno.
+                            Aún no se han registrado pagos en la sesión actual.
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Historial de Cierres Anteriores -->
-            <div class="bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
-                <div class="p-4 border-b border-stone-100">
-                    <h3 class="font-bold text-sm text-stone-900">Historial de Turnos y Arqueos Cerrados</h3>
+            <!-- Widget en Tiempo Real: Facturas Anuladas y Devoluciones de Compras (Item 11) -->
+            <div class="bg-white rounded-3xl border border-stone-200 shadow-xs p-6 space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-stone-100 pb-4">
+                    <div>
+                        <h3 class="font-black text-base text-stone-900 flex items-center gap-2">
+                            <span>🛡️</span>
+                            <span>Auditoría en Tiempo Real: Facturas Anuladas y Devoluciones de Compras</span>
+                        </h3>
+                        <p class="text-xs text-stone-500">Registro en vivo de notas crédito, anulaciones fiscales y devoluciones a proveedores.</p>
+                    </div>
+
+                    <!-- Selector de Pestaña -->
+                    <div class="flex items-center gap-1 bg-stone-100 p-1 rounded-xl text-xs font-bold">
+                        <button
+                            type="button"
+                            @click="pestanaAuditoria = 'facturas'"
+                            :class="['px-3 py-1.5 rounded-lg transition', pestanaAuditoria === 'facturas' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-800']"
+                        >
+                            Facturas Anuladas ({{ facturasAnuladasRecientes.length }})
+                        </button>
+                        <button
+                            type="button"
+                            @click="pestanaAuditoria = 'compras'"
+                            :class="['px-3 py-1.5 rounded-lg transition', pestanaAuditoria === 'compras' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-800']"
+                        >
+                            Devoluciones Compras ({{ devolucionesRecientes.length }})
+                        </button>
+                    </div>
                 </div>
+
+                <!-- Tabla Facturas Anuladas -->
+                <div v-if="pestanaAuditoria === 'facturas'" class="overflow-x-auto">
+                    <table v-if="facturasAnuladasRecientes.length > 0" class="w-full text-left text-xs">
+                        <thead class="bg-stone-50 text-stone-500 font-bold uppercase tracking-wider">
+                            <tr>
+                                <th class="p-3">Número FAC</th>
+                                <th class="p-3">Cliente</th>
+                                <th class="p-3">Fecha Anulación</th>
+                                <th class="p-3">Motivo Registrado</th>
+                                <th class="p-3">Anulado Por</th>
+                                <th class="p-3 text-right">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-stone-100">
+                            <tr v-for="fac in facturasAnuladasRecientes" :key="fac.id" class="hover:bg-stone-50">
+                                <td class="p-3 font-mono font-bold text-rose-700">{{ fac.numero }}</td>
+                                <td class="p-3 font-semibold">{{ fac.cliente }}</td>
+                                <td class="p-3 font-mono text-stone-500">{{ fac.anulado_at }}</td>
+                                <td class="p-3 text-stone-600 max-w-xs truncate">{{ fac.motivo }}</td>
+                                <td class="p-3 text-stone-600">{{ fac.anulado_por }}</td>
+                                <td class="p-3 font-mono font-bold text-right text-stone-900">${{ fac.total.toLocaleString() }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div v-else class="text-center py-6 text-stone-400 text-xs">
+                        No hay facturas anuladas recientes en esta sucursal.
+                    </div>
+                </div>
+
+                <!-- Tabla Devoluciones de Compras -->
+                <div v-if="pestanaAuditoria === 'compras'" class="overflow-x-auto">
+                    <table v-if="devolucionesRecientes.length > 0" class="w-full text-left text-xs">
+                        <thead class="bg-stone-50 text-stone-500 font-bold uppercase tracking-wider">
+                            <tr>
+                                <th class="p-3">Factura Compra</th>
+                                <th class="p-3">Modalidad</th>
+                                <th class="p-3">Fecha</th>
+                                <th class="p-3">Motivo Devolución</th>
+                                <th class="p-3">Registrado Por</th>
+                                <th class="p-3 text-right">Total Devuelto</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-stone-100">
+                            <tr v-for="dev in devolucionesRecientes" :key="dev.id" class="hover:bg-stone-50">
+                                <td class="p-3 font-mono font-bold text-amber-700">{{ dev.factura_compra }}</td>
+                                <td class="p-3">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 uppercase">
+                                        {{ dev.tipo }}
+                                    </span>
+                                </td>
+                                <td class="p-3 font-mono text-stone-500">{{ dev.fecha }}</td>
+                                <td class="p-3 text-stone-600 max-w-xs truncate">{{ dev.motivo }}</td>
+                                <td class="p-3 text-stone-600">{{ dev.usuario }}</td>
+                                <td class="p-3 font-mono font-bold text-right text-stone-900">${{ dev.total_devuelto.toLocaleString() }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div v-else class="text-center py-6 text-stone-400 text-xs">
+                        No hay devoluciones de compras registradas en esta sucursal.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Historial de Cierres de Turno -->
+            <div class="bg-white rounded-3xl border border-stone-200 shadow-xs p-6 space-y-4">
+                <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+                    <h3 class="font-bold text-sm text-stone-900">Historial de Turnos Cerrados Recientemente</h3>
+                </div>
+
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs border-collapse">
-                        <thead>
-                            <tr class="bg-stone-50 border-b border-stone-200 text-stone-500 uppercase tracking-wider font-semibold">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-stone-50 text-stone-500 uppercase tracking-wider">
+                            <tr>
                                 <th class="p-3">Caja</th>
                                 <th class="p-3">Cajero</th>
                                 <th class="p-3">Apertura</th>
                                 <th class="p-3">Cierre</th>
-                                <th class="p-3">Base</th>
-                                <th class="p-3">Efectivo Calculado</th>
-                                <th class="p-3">Efectivo Declarado</th>
-                                <th class="p-3">Diferencia</th>
+                                <th class="p-3 text-right">Base</th>
+                                <th class="p-3 text-right">Declarado</th>
+                                <th class="p-3 text-right">Calculado</th>
+                                <th class="p-3 text-right">Diferencia</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-stone-100">
-                            <tr v-for="cierre in cierresRecientes" :key="cierre.id" class="hover:bg-stone-50/50">
-                                <td class="p-3 font-semibold text-stone-800">{{ cierre.caja }}</td>
-                                <td class="p-3 text-stone-600">{{ cierre.cajero }}</td>
+                            <tr v-for="cierre in cierresRecientes" :key="cierre.id" class="hover:bg-stone-50">
+                                <td class="p-3 font-bold">{{ cierre.caja }}</td>
+                                <td class="p-3">{{ cierre.cajero }}</td>
                                 <td class="p-3 font-mono text-stone-500">{{ cierre.apertura }}</td>
                                 <td class="p-3 font-mono text-stone-500">{{ cierre.cierre }}</td>
-                                <td class="p-3 font-mono text-stone-700">${{ cierre.monto_apertura.toLocaleString() }}</td>
-                                <td class="p-3 font-mono text-stone-700">${{ cierre.monto_calculado.toLocaleString() }}</td>
-                                <td class="p-3 font-mono font-bold text-stone-900">${{ cierre.monto_declarado.toLocaleString() }}</td>
-                                <td class="p-3 font-mono font-bold">
-                                    <span :class="cierre.diferencia === 0 ? 'text-emerald-600' : (cierre.diferencia > 0 ? 'text-sky-600' : 'text-rose-600')">
-                                        {{ cierre.diferencia === 0 ? '$0 (Cuadrada)' : (cierre.diferencia > 0 ? `+$${cierre.diferencia.toLocaleString()} (Sobrante)` : `-$${Math.abs(cierre.diferencia).toLocaleString()} (Faltante)`) }}
-                                    </span>
+                                <td class="p-3 font-mono text-right">${{ cierre.monto_apertura.toLocaleString() }}</td>
+                                <td class="p-3 font-mono text-right">${{ cierre.monto_declarado.toLocaleString() }}</td>
+                                <td class="p-3 font-mono text-right">${{ cierre.monto_calculado.toLocaleString() }}</td>
+                                <td :class="['p-3 font-mono font-bold text-right', cierre.diferencia === 0 ? 'text-stone-400' : (cierre.diferencia > 0 ? 'text-emerald-600' : 'text-rose-600')]">
+                                    ${{ cierre.diferencia.toLocaleString() }}
                                 </td>
                             </tr>
                         </tbody>
@@ -225,7 +372,7 @@
             </div>
         </div>
 
-        <!-- Modal Apertura de Caja (RF-CAJ-02) -->
+        <!-- Modal Apertura de Turno -->
         <div v-if="modalAperturaAbierto" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
             <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-stone-200 space-y-4">
                 <div class="flex items-center justify-between border-b border-stone-100 pb-3">
@@ -234,106 +381,183 @@
                 </div>
                 <form @submit.prevent="ejecutarApertura" class="space-y-4 text-xs">
                     <div>
-                        <label for="caja_apertura" class="block font-semibold text-stone-700 mb-1">Caja a Abrir *</label>
-                        <select id="caja_apertura" v-model="formApertura.caja_id" class="w-full rounded-xl border border-stone-300 p-2 text-xs" required>
-                            <option v-for="c in cajas" :key="c.id" :value="c.id">{{ c.nombre }}</option>
+                        <label for="caja_apertura" class="block font-semibold text-stone-700 mb-1">Caja Física Asignada *</label>
+                        <select id="caja_apertura" v-model="formApertura.caja_id" class="w-full rounded-xl border border-stone-300 p-2.5 text-xs" required>
+                            <option v-for="caja in cajas" :key="caja.id" :value="caja.id">
+                                {{ caja.nombre }}
+                            </option>
                         </select>
                     </div>
                     <div>
-                        <label for="monto_apertura" class="block font-semibold text-stone-700 mb-1">Monto Base Inicial en Efectivo ($) *</label>
-                        <input id="monto_apertura" type="number" step="1000" min="0" v-model.number="formApertura.monto_apertura" class="w-full rounded-xl border border-stone-300 p-2.5 text-xs font-mono" required />
+                        <label for="monto_apertura" class="block font-semibold text-stone-700 mb-1">Monto Base de Apertura ($) *</label>
+                        <input id="monto_apertura" type="number" step="100" min="0" v-model.number="formApertura.monto_apertura" class="w-full rounded-xl border border-stone-300 p-2.5 text-xs font-mono font-bold" required />
                     </div>
                     <div class="flex justify-end space-x-2 pt-2 border-t border-stone-100">
                         <button type="button" @click="modalAperturaAbierto = false" class="px-4 py-2 rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-50">Cancelar</button>
-                        <button type="submit" :disabled="formApertura.processing" class="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold transition">
-                            Abrir Turno
+                        <button type="submit" :disabled="formApertura.processing" class="px-5 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold transition">
+                            {{ formApertura.processing ? 'Abriendo...' : 'Abrir Turno' }}
                         </button>
                     </div>
                 </form>
             </div>
         </div>
 
-        <!-- Modal Registrar Pago / Cobro (RF-CAJ-04, CA-30) -->
+        <!-- Modal Configurar Base Inicial (Item 6) -->
+        <div v-if="modalConfigurarBaseAbierto" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+            <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-stone-200 space-y-4">
+                <div class="flex items-center justify-between border-b pb-3">
+                    <h3 class="font-black text-base text-stone-900">Configurar Base Inicial</h3>
+                    <button @click="modalConfigurarBaseAbierto = false" class="text-stone-400 hover:text-stone-600">✕</button>
+                </div>
+                <form @submit.prevent="guardarBaseInicial" class="space-y-4 text-xs">
+                    <div>
+                        <label class="block font-bold text-stone-700 mb-1">Monto Base por Defecto ($) *</label>
+                        <input
+                            type="number"
+                            step="1000"
+                            min="0"
+                            v-model.number="formBase.base_efectivo_inicial"
+                            class="w-full rounded-xl border border-stone-300 p-2.5 font-mono font-bold text-sm"
+                            required
+                        />
+                        <p class="text-[11px] text-stone-400 mt-1">Este monto se preseleccionará al abrir cada turno en esta sucursal.</p>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2 border-t">
+                        <button type="button" @click="modalConfigurarBaseAbierto = false" class="px-4 py-2 border rounded-xl text-stone-600">Cancelar</button>
+                        <button type="submit" :disabled="formBase.processing" class="px-5 py-2 bg-stone-900 text-white font-bold rounded-xl transition">
+                            Guardar Base
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal Cobro / Pago -->
         <div v-if="modalPagoAbierto" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-            <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-stone-200 space-y-4">
+            <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-stone-200 space-y-4">
                 <div class="flex items-center justify-between border-b border-stone-100 pb-3">
-                    <h3 class="font-bold text-base text-stone-900">
-                        Cobro de Pedido {{ pedidoSeleccionado?.numero }}
-                    </h3>
+                    <div>
+                        <h3 class="font-bold text-base text-stone-900">
+                            Cobro de Pedido #{{ pedidoSeleccionado?.numero }}
+                        </h3>
+                        <span class="text-xs text-stone-400">{{ pedidoSeleccionado?.cliente }}</span>
+                    </div>
                     <button @click="modalPagoAbierto = false" class="text-stone-400 hover:text-stone-600">✕</button>
                 </div>
 
-                <form @submit.prevent="ejecutarCobro" class="space-y-4 text-xs">
-                    <!-- Propina Opcional (SC-02) -->
-                    <div class="p-3 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2">
-                        <div class="flex items-center justify-between">
-                            <span class="font-semibold text-amber-900">Propina Voluntaria (SC-02):</span>
-                            <span class="font-bold text-amber-800 font-mono">${{ (formPago.propina_valor || 0).toLocaleString() }}</span>
-                        </div>
-                        <div class="flex gap-2">
-                            <button type="button" @click="establecerPropina(0)" :class="['px-2.5 py-1 rounded-lg text-[11px] font-bold border transition', formPago.propina_valor === 0 ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-stone-700 border-stone-200']">
-                                Sin propina (0%)
+                <div class="space-y-4 text-xs">
+                    <div>
+                        <label class="block font-semibold text-stone-700 mb-1">Método de Pago</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button
+                                type="button"
+                                @click="metodoSeleccionado = 'efectivo'"
+                                :class="['py-2 rounded-xl border font-bold text-xs', metodoSeleccionado === 'efectivo' ? 'bg-orange-600 text-white border-orange-600' : 'bg-stone-50 text-stone-700 border-stone-200']"
+                            >
+                                Efectivo
                             </button>
-                            <button type="button" @click="establecerPropina(0.05)" :class="['px-2.5 py-1 rounded-lg text-[11px] font-bold border transition', formPago.propina_valor === Math.round(pedidoSeleccionado?.subtotal * 0.05) ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-stone-700 border-stone-200']">
-                                5%
+                            <button
+                                type="button"
+                                @click="metodoSeleccionado = 'tarjeta_debito'"
+                                :class="['py-2 rounded-xl border font-bold text-xs', metodoSeleccionado === 'tarjeta_debito' ? 'bg-orange-600 text-white border-orange-600' : 'bg-stone-50 text-stone-700 border-stone-200']"
+                            >
+                                Tarjeta
                             </button>
-                            <button type="button" @click="establecerPropina(0.10)" :class="['px-2.5 py-1 rounded-lg text-[11px] font-bold border transition', formPago.propina_valor === Math.round(pedidoSeleccionado?.subtotal * 0.10) ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-stone-700 border-stone-200']">
-                                10%
+                            <button
+                                type="button"
+                                @click="metodoSeleccionado = 'transferencia'"
+                                :class="['py-2 rounded-xl border font-bold text-xs', metodoSeleccionado === 'transferencia' ? 'bg-orange-600 text-white border-orange-600' : 'bg-stone-50 text-stone-700 border-stone-200']"
+                            >
+                                Transferencia
                             </button>
                         </div>
                     </div>
 
-                    <!-- Total a Cobrar -->
-                    <div class="p-3 bg-stone-100 rounded-xl flex items-center justify-between">
-                        <span class="font-bold text-stone-700">Total con propina:</span>
-                        <span class="text-xl font-black font-mono text-orange-600">
-                            ${{ calcularTotalCobro().toLocaleString() }}
+                    <div>
+                        <label class="block font-semibold text-stone-700 mb-1">Propina Voluntaria (Opcional)</label>
+                        <div class="grid grid-cols-4 gap-2">
+                            <button type="button" @click="establecerPropina(0)" class="py-1.5 rounded-lg border text-stone-700 bg-stone-50 font-bold">0%</button>
+                            <button type="button" @click="establecerPropina(5)" class="py-1.5 rounded-lg border text-stone-700 bg-stone-50 font-bold">5%</button>
+                            <button type="button" @click="establecerPropina(10)" class="py-1.5 rounded-lg border text-stone-700 bg-stone-50 font-bold">10%</button>
+                            <button type="button" @click="establecerPropina(15)" class="py-1.5 rounded-lg border text-stone-700 bg-stone-50 font-bold">15%</button>
+                        </div>
+                    </div>
+
+                    <div v-if="metodoSeleccionado === 'efectivo'">
+                        <label class="block font-semibold text-stone-700 mb-1">Efectivo Recibido ($)</label>
+                        <input type="number" step="100" v-model.number="montoRecibidoInput" class="w-full rounded-xl border border-stone-300 p-2 text-xs font-mono font-bold" />
+                        <span class="text-[11px] text-stone-400 mt-1 block">
+                            Cambio a Devolver: ${{ Math.max(0, montoRecibidoInput - calcularTotalCobro()).toLocaleString() }}
                         </span>
                     </div>
 
-                    <!-- Método de Pago -->
-                    <div class="space-y-2">
-                        <label class="block font-semibold text-stone-700">Método de Pago *</label>
-                        <select v-model="metodoSeleccionado" class="w-full rounded-xl border border-stone-300 p-2 text-xs">
-                            <option value="efectivo">Efectivo</option>
-                            <option value="tarjeta_debito">Tarjeta Débito</option>
-                            <option value="tarjeta_credito">Tarjeta Crédito</option>
-                            <option value="transferencia">Transferencia (Nequi / Daviplata / Bancolombia)</option>
-                        </select>
-                    </div>
-
-                    <!-- Si es Efectivo, Billete Recibido y Devuelta -->
-                    <div v-if="metodoSeleccionado === 'efectivo'" class="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
-                        <label for="billete_recibido" class="block font-semibold text-stone-700">Billete / Efectivo Recibido ($)</label>
-                        <input
-                            id="billete_recibido"
-                            type="number"
-                            step="1000"
-                            :min="calcularTotalCobro()"
-                            v-model.number="montoRecibidoInput"
-                            class="w-full rounded-xl border border-stone-300 p-2 text-xs font-mono"
-                        />
-                        <div v-if="montoRecibidoInput >= calcularTotalCobro()" class="flex justify-between items-center pt-1 text-emerald-700 font-bold">
-                            <span>Devuelta / Cambio a entregar:</span>
-                            <span class="font-mono text-base">${{ (montoRecibidoInput - calcularTotalCobro()).toLocaleString() }}</span>
+                    <div class="p-3 bg-stone-50 rounded-xl space-y-1 font-mono text-xs">
+                        <div class="flex justify-between">
+                            <span>Subtotal + Imp:</span>
+                            <span>${{ (pedidoSeleccionado?.subtotal + pedidoSeleccionado?.impuestos).toLocaleString() }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Propina:</span>
+                            <span>${{ formPago.propina_valor.toLocaleString() }}</span>
+                        </div>
+                        <div class="flex justify-between font-bold text-sm text-stone-900 pt-1 border-t border-stone-200">
+                            <span>Total Cobro:</span>
+                            <span>${{ calcularTotalCobro().toLocaleString() }}</span>
                         </div>
                     </div>
 
                     <div class="flex justify-end space-x-2 pt-2 border-t border-stone-100">
                         <button type="button" @click="modalPagoAbierto = false" class="px-4 py-2 rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-50">Cancelar</button>
-                        <button type="submit" :disabled="formPago.processing" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition">
-                            {{ formPago.processing ? 'Registrando...' : 'Confirmar Cobro y Emitir Comprobante' }}
+                        <button type="button" @click="ejecutarCobro" :disabled="formPago.processing" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition">
+                            {{ formPago.processing ? 'Cobrando...' : 'Confirmar Cobro' }}
                         </button>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
 
-        <!-- Modal Cierre de Turno y Arqueo (RF-CAJ-05) -->
+        <!-- Modal Anular Ítem (Item 11) -->
+        <div v-if="modalAnularItemAbierto" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-stone-200 space-y-4">
+                <div class="flex items-center justify-between border-b pb-3">
+                    <h3 class="font-black text-base text-stone-900">Anular Ítem del Pedido</h3>
+                    <button @click="modalAnularItemAbierto = false" class="text-stone-400 hover:text-stone-600">✕</button>
+                </div>
+                <div class="space-y-3 text-xs">
+                    <p class="text-stone-600">
+                        Vas a anular <strong>{{ itemParaAnular?.nombre }}</strong> de la comanda <strong>#{{ pedidoDeItemParaAnular?.numero }}</strong>.
+                        Se ajustará la cuenta y se registrará en la bitácora.
+                    </p>
+                    <div>
+                        <label class="block font-bold text-stone-700 mb-1">Motivo de Anulación *</label>
+                        <input
+                            type="text"
+                            v-model="motivoAnulacionItem"
+                            placeholder="Ej: Error al digitar comanda, plato cancelado por cliente..."
+                            class="w-full rounded-xl border border-stone-300 p-2.5 text-xs text-stone-800"
+                            required
+                        />
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2 border-t">
+                        <button type="button" @click="modalAnularItemAbierto = false" class="px-4 py-2 border rounded-xl text-stone-600">Cancelar</button>
+                        <button
+                            type="button"
+                            @click="confirmarAnulacionItem"
+                            :disabled="!motivoAnulacionItem"
+                            class="px-5 py-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold rounded-xl transition"
+                        >
+                            Confirmar Anulación
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Cierre de Turno -->
         <div v-if="modalCierreAbierto" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
             <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-stone-200 space-y-4">
                 <div class="flex items-center justify-between border-b border-stone-100 pb-3">
-                    <h3 class="font-bold text-base text-stone-900">Arqueo y Cierre de Turno</h3>
+                    <h3 class="font-bold text-base text-stone-900">Cierre de Turno y Arqueo de Caja</h3>
                     <button @click="modalCierreAbierto = false" class="text-stone-400 hover:text-stone-600">✕</button>
                 </div>
                 <form @submit.prevent="ejecutarCierre" class="space-y-4 text-xs">
@@ -368,26 +592,53 @@ const props = defineProps({
     pagosSesion: { type: Array, default: () => [] },
     pedidosPorCobrar: { type: Array, default: () => [] },
     cierresRecientes: { type: Array, default: () => [] },
+    facturasAnuladasRecientes: { type: Array, default: () => [] },
+    devolucionesRecientes: { type: Array, default: () => [] },
+    base_efectivo_inicial: { type: Number, default: 100000 },
     sucursales: { type: Array, default: () => [] },
     sucursal_id: { type: Number, required: true },
 });
 
 const sucursalSeleccionada = ref(props.sucursal_id);
+const pestanaAuditoria = ref('facturas');
+const acordeonesAbiertos = ref({});
+
+function toggleAcordeon(id) {
+    acordeonesAbiertos.value[id] = !acordeonesAbiertos.value[id];
+}
 
 const cambiarSucursal = () => {
-    router.get('/admin/caja', { sucursal_id: sucursalSeleccionada.value });
+    router.post('/admin/seleccionar-sucursal', { sucursal_id: sucursalSeleccionada.value }, {
+        onSuccess: () => {
+            router.get('/admin/caja', { sucursal_id: sucursalSeleccionada.value });
+        },
+    });
 };
+
+// Modal Configurar Base Inicial (Item 6)
+const modalConfigurarBaseAbierto = ref(false);
+const formBase = useForm({
+    base_efectivo_inicial: props.base_efectivo_inicial || 100000,
+    sucursal_id: props.sucursal_id,
+});
+
+function guardarBaseInicial() {
+    formBase.post('/admin/caja/configurar-base', {
+        preserveScroll: true,
+        onSuccess: () => { modalConfigurarBaseAbierto.value = false; },
+    });
+}
 
 // Modal Apertura
 const modalAperturaAbierto = ref(false);
 const formApertura = useForm({
     caja_id: props.cajas[0]?.id || null,
-    monto_apertura: 100000,
+    monto_apertura: props.base_efectivo_inicial || 100000,
 });
 
 const abrirModalApertura = () => {
     formApertura.caja_id = props.cajas[0]?.id || null;
-    formApertura.monto_apertura = 100000;
+    formApertura.monto_apertura = props.base_efectivo_inicial || 100000;
     modalAperturaAbierto.value = true;
 };
 
@@ -420,13 +671,12 @@ const abrirModalPago = (pedido) => {
 const establecerPropina = (porcentaje) => {
     if (!pedidoSeleccionado.value) return;
     const base = pedidoSeleccionado.value.subtotal;
-    formPago.propina_valor = Math.round(base * porcentaje);
-    montoRecibidoInput.value = calcularTotalCobro();
+    formPago.propina_valor = Math.round((base * porcentaje) / 100);
 };
 
 const calcularTotalCobro = () => {
     if (!pedidoSeleccionado.value) return 0;
-    return (pedidoSeleccionado.value.subtotal + pedidoSeleccionado.value.impuestos + (formPago.propina_valor || 0));
+    return (pedidoSeleccionado.value.subtotal + pedidoSeleccionado.value.impuestos) + formPago.propina_valor;
 };
 
 const ejecutarCobro = () => {
@@ -446,6 +696,32 @@ const ejecutarCobro = () => {
         onSuccess: () => { modalPagoAbierto.value = false; },
     });
 };
+
+// Modal Anular Ítem (Item 11)
+const modalAnularItemAbierto = ref(false);
+const itemParaAnular = ref(null);
+const pedidoDeItemParaAnular = ref(null);
+const motivoAnulacionItem = ref('');
+
+function abrirModalAnularItem(pedido, item) {
+    pedidoDeItemParaAnular.value = pedido;
+    itemParaAnular.value = item;
+    motivoAnulacionItem.value = '';
+    modalAnularItemAbierto.value = true;
+}
+
+function confirmarAnulacionItem() {
+    if (!pedidoDeItemParaAnular.value || !itemParaAnular.value || !motivoAnulacionItem.value) return;
+
+    router.post(
+        `/admin/caja/pedidos/${pedidoDeItemParaAnular.value.id}/items/${itemParaAnular.value.id}/anular`,
+        { motivo: motivoAnulacionItem.value },
+        {
+            preserveScroll: true,
+            onSuccess: () => { modalAnularItemAbierto.value = false; },
+        }
+    );
+}
 
 // Modal Cierre
 const modalCierreAbierto = ref(false);
@@ -468,4 +744,3 @@ const ejecutarCierre = () => {
     });
 };
 </script>
-

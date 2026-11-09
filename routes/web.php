@@ -17,11 +17,13 @@ use App\Http\Controllers\Admin\PromocionController;
 use App\Http\Controllers\Admin\ReservaController as AdminReservaController;
 use App\Http\Controllers\Auth\InvitacionController;
 use App\Http\Controllers\Auth\RegistroController;
+use App\Http\Controllers\Cajero\CajeroController;
 use App\Http\Controllers\Cliente\ComprobanteController as ClienteComprobanteController;
 use App\Http\Controllers\Cliente\DashboardController as ClienteDashboardController;
 use App\Http\Controllers\Cliente\PedidoController as ClientePedidoController;
 use App\Http\Controllers\Cliente\PerfilController;
 use App\Http\Controllers\Cliente\ReservaController as ClienteReservaController;
+use App\Http\Controllers\Cocina\CocinaController;
 use App\Http\Controllers\Mesero\DashboardController as MeseroDashboardController;
 use App\Http\Controllers\Mesero\PedidoController as MeseroPedidoController;
 use App\Http\Controllers\Public\ComprobantePublicoController;
@@ -32,6 +34,7 @@ use App\Http\Controllers\SuperAdmin\AdministradorController;
 use App\Http\Controllers\SuperAdmin\ConfiguracionController;
 use App\Http\Controllers\SuperAdmin\DashboardController as SuperAdminDashboardController;
 use App\Http\Controllers\SuperAdmin\SucursalController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -113,11 +116,42 @@ Route::middleware(['auth', 'role:mesero'])->prefix('mesero')->name('mesero.')->g
 
 /*
 |--------------------------------------------------------------------------
+| Rutas del Cajero de Turno (Item 6)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'role:cajero|admin|super_admin'])->prefix('cajero')->name('cajero.')->group(function () {
+    Route::get('/', [CajeroController::class, 'index'])->name('index');
+    Route::post('/apertura', [CajaController::class, 'apertura'])->name('apertura');
+    Route::post('/pagos/{pedido}', [CajaController::class, 'pago'])->name('pago');
+    Route::post('/cierre/{sesionCaja}', [CajaController::class, 'cierre'])->name('cierre');
+    Route::post('/pedidos/{pedido}/items/{item}/anular', [CajaController::class, 'anularItem'])->name('items.anular');
+    Route::get('/buscar-factura', [CajeroController::class, 'buscarFactura'])->name('buscar-factura');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Rutas de Cocina / Pantalla KDS (Item 6)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'role:cocinero|admin|super_admin'])->prefix('cocina')->name('cocina.')->group(function () {
+    Route::get('/', [CocinaController::class, 'index'])->name('index');
+    Route::post('/pedidos/{pedido}/estado', [CocinaController::class, 'cambiarEstado'])->name('pedidos.estado');
+});
+
+/*
+|--------------------------------------------------------------------------
 | Rutas del Administrador de Sucursal
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', 'role:admin|super_admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', AdminDashboardController::class)->name('dashboard');
+    Route::post('/seleccionar-sucursal', function (Request $request) {
+        $val = $request->input('sucursal_id');
+        $id = ($val === 'todas') ? 'todas' : (int) $val;
+        session(['sucursal_id' => $id, 'sucursal_activa_id' => $id]);
+
+        return back()->with('success', 'Sucursal activa seleccionada.');
+    })->name('seleccionar-sucursal');
 
     // Monitor de Pedidos en Tiempo Real (RF-PED-01..22, Prompt A.6)
     Route::get('/pedidos', [AdminPedidoController::class, 'index'])->name('pedidos.index');
@@ -179,6 +213,8 @@ Route::middleware(['auth', 'role:admin|super_admin'])->prefix('admin')->name('ad
     Route::post('/caja/pagos/{pedido}', [CajaController::class, 'pago'])->name('caja.pago');
     Route::post('/caja/cierre/{sesionCaja}', [CajaController::class, 'cierre'])->name('caja.cierre');
     Route::post('/caja/cajas', [CajaController::class, 'storeCaja'])->name('caja.cajas.store');
+    Route::post('/caja/configurar-base', [CajaController::class, 'configurarBase'])->name('caja.configurar-base');
+    Route::post('/caja/pedidos/{pedido}/items/{item}/anular', [CajaController::class, 'anularItem'])->name('caja.items.anular');
 
     // Operación: Comprobantes FAC (SC-03, RF-FAC-01..06, CA-31)
     Route::get('/comprobantes', [AdminComprobanteController::class, 'index'])->name('comprobantes.index');
@@ -192,6 +228,8 @@ Route::middleware(['auth', 'role:admin|super_admin'])->prefix('admin')->name('ad
 
     // Operación: Informes y Estadísticas (RF-INF, CA-38..40)
     Route::get('/informes', [InformeController::class, 'index'])->name('informes.index');
+    Route::get('/informes/exportar/excel', [InformeController::class, 'exportarExcel'])->name('informes.exportar.excel');
+    Route::get('/informes/exportar/pdf', [InformeController::class, 'exportarPdf'])->name('informes.exportar.pdf');
 
     // Bitácora de Auditoría de solo lectura (RF-AUD-02, 03, CA-19)
     Route::get('/bitacora', [BitacoraController::class, 'index'])->name('bitacora.index');
@@ -221,16 +259,20 @@ Route::middleware(['auth', 'role:super_admin'])->prefix('superadmin')->name('sup
     Route::get('/sucursales', [SucursalController::class, 'index'])->name('sucursales.index');
     Route::post('/sucursales', [SucursalController::class, 'store'])->name('sucursales.store');
     Route::put('/sucursales/{sucursal}', [SucursalController::class, 'update'])->name('sucursales.update');
+    Route::post('/sucursales/{sucursal}/modalidad', [SucursalController::class, 'toggleModalidad'])->name('sucursales.modalidad');
     Route::delete('/sucursales/{sucursal}', [SucursalController::class, 'destroy'])->name('sucursales.destroy');
 
     // Parámetros Globales e Impuestos (RF-CFG-02, 03)
     Route::get('/configuracion', [ConfiguracionController::class, 'index'])->name('configuracion.index');
     Route::put('/configuracion', [ConfiguracionController::class, 'update'])->name('configuracion.update');
     Route::get('/impuestos', [ConfiguracionController::class, 'impuestos'])->name('impuestos.index');
+    Route::post('/impuestos/catalogo', [ConfiguracionController::class, 'guardarCatalogo'])->name('impuestos.catalogo');
 
     // Plantillas de Correo (Acceso directo desde SuperAdmin)
     Route::get('/plantillas', [PlantillaCorreoController::class, 'index'])->name('plantillas.index');
 
     // Informes Consolidados (Acceso directo desde SuperAdmin)
     Route::get('/informes', [InformeController::class, 'index'])->name('informes.index');
+    Route::get('/informes/exportar/excel', [InformeController::class, 'exportarExcel'])->name('informes.exportar.excel');
+    Route::get('/informes/exportar/pdf', [InformeController::class, 'exportarPdf'])->name('informes.exportar.pdf');
 });

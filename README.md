@@ -107,6 +107,8 @@ Todos los usuarios de prueba creados por los seeders oficiales (`RolesYPermisosS
 | **Administrador Sede Centro** | `admin.centro@sigr.test` | `admin@sigr.test` | `password` | Operación completa de la Sede Centro (menú, compras, kárdex, pedidos, turnos de caja, arqueos, reservas e informes). |
 | **Administrador Sede Norte** | `admin.norte@sigr.test` | — | `password` | Operación completa de la Sede Norte (aislamiento multi-tenant estricto respecto a Centro, bloqueo 403 cruzado). |
 | **Mesero Sede Centro** | `mesero.centro@sigr.test` | `mesero@sigr.test` | `password` | Toma ágil de comandas, cambio de mesa, mapa de salón en vivo, consulta de órdenes y solicitud de cancelación. |
+| **Cajero Sede Centro** | `cajero@sigr.test` | — | `password` | Vista dedicada de caja (`/cajero`): apertura y cierre de turno, cobro de comandas pendientes, anulación de ítems mal facturados y búsqueda/reenvío de comprobantes. |
+| **Cocina (KDS) Sede Centro** | `cocina@sigr.test` | — | `password` | Monitor KDS en tiempo real (`/cocina`) de pedidos entrantes, en preparación y listos para despacho de la sede asignada. |
 | **Cliente Registrado (Pedidos)** | `cliente@sigr.test` | — | `password` | Historial de pedidos en vivo, descarga de comprobantes FAC en tirilla 80 mm, reenvío contable y reservas activas. |
 | **Cliente Registrado (Voluntario)** | `registrado@sigr.test` | — | `password` | Cliente con auto-registro voluntario desde Home, verificación de email activa y consentimiento explícito de Ley 1581 (SC-01). |
 

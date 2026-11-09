@@ -320,9 +320,19 @@
                             </div>
 
                             <div class="flex flex-col items-end gap-1.5">
-                                <span class="text-sm font-extrabold text-stone-900">
-                                    {{ formatearMoneda(item.precio_unitario * item.cantidad) }}
-                                </span>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-extrabold text-stone-900">
+                                        {{ formatearMoneda(item.precio_unitario * item.cantidad) }}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        @click="eliminarDelCarrito(item.id)"
+                                        class="text-stone-300 hover:text-rose-600 transition p-0.5 rounded text-xs font-bold"
+                                        title="Eliminar del pedido"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
                                 <div class="flex items-center space-x-1.5 bg-stone-100 rounded-lg p-1">
                                     <button
                                         @click="decrementarCantidad(item.id)"
@@ -440,7 +450,7 @@
                         <button
                             type="button"
                             :disabled="esPersonal || carrito.length === 0"
-                            @click="mostrarModalCheckout = true"
+                            @click="procederAlPedido"
                             :class="[
                                 'w-full py-3.5 text-sm font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2',
                                 esPersonal || carrito.length === 0
@@ -506,28 +516,31 @@
                 </div>
 
                 <div class="overflow-y-auto py-4 space-y-4 flex-1">
-                    <!-- Modalidad del Pedido -->
+                    <!-- Modalidad del Pedido (Parametrizable por Sede - SC-03) -->
                     <div>
                         <label class="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">Modalidad</label>
                         <div class="grid grid-cols-3 gap-2">
                             <button
+                                v-if="sucursalActiva?.acepta_domicilios !== false"
                                 type="button"
                                 @click="checkoutForm.tipo = 'domicilio'"
-                                :class="['py-2.5 px-3 rounded-xl text-xs font-bold border transition text-center', checkoutForm.tipo === 'domicilio' ? 'bg-orange-600 text-white border-orange-600' : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100']"
+                                :class="['py-2.5 px-3 rounded-xl text-xs font-bold border transition text-center cursor-pointer', checkoutForm.tipo === 'domicilio' ? 'bg-orange-600 text-white border-orange-600' : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100']"
                             >
                                 🛵 Domicilio
                             </button>
                             <button
+                                v-if="sucursalActiva?.acepta_para_llevar !== false"
                                 type="button"
                                 @click="checkoutForm.tipo = 'para_llevar'"
-                                :class="['py-2.5 px-3 rounded-xl text-xs font-bold border transition text-center', checkoutForm.tipo === 'para_llevar' ? 'bg-orange-600 text-white border-orange-600' : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100']"
+                                :class="['py-2.5 px-3 rounded-xl text-xs font-bold border transition text-center cursor-pointer', checkoutForm.tipo === 'para_llevar' ? 'bg-orange-600 text-white border-orange-600' : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100']"
                             >
                                 🛍️ Para llevar
                             </button>
                             <button
+                                v-if="sucursalActiva?.acepta_en_sitio !== false"
                                 type="button"
                                 @click="checkoutForm.tipo = 'en_sitio'"
-                                :class="['py-2.5 px-3 rounded-xl text-xs font-bold border transition text-center', checkoutForm.tipo === 'en_sitio' ? 'bg-orange-600 text-white border-orange-600' : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100']"
+                                :class="['py-2.5 px-3 rounded-xl text-xs font-bold border transition text-center cursor-pointer', checkoutForm.tipo === 'en_sitio' ? 'bg-orange-600 text-white border-orange-600' : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100']"
                             >
                                 🍽️ En mesa
                             </button>
@@ -812,6 +825,14 @@ function decrementarCantidad(itemId) {
     }
 }
 
+function eliminarDelCarrito(itemId) {
+    const idx = carrito.value.findIndex(i => i.id === itemId);
+    if (idx !== -1) {
+        carrito.value.splice(idx, 1);
+        guardarCarrito();
+    }
+}
+
 // Totales del carrito (SC-02, DE-17: Propina calculada sobre la base imponible sin impuestos)
 const resumenTotales = computed(() => {
     let subtotal = 0;
@@ -865,6 +886,30 @@ const checkoutForm = ref({
 });
 
 function procederAlPedido() {
+    const user = page.props.auth?.user;
+    if (user) {
+        if (!checkoutForm.value.nombre_contacto && user.nombre) {
+            checkoutForm.value.nombre_contacto = user.nombre;
+        }
+        if (!checkoutForm.value.email_contacto && user.email) {
+            checkoutForm.value.email_contacto = user.email;
+        }
+        if (!checkoutForm.value.telefono_contacto && user.telefono) {
+            checkoutForm.value.telefono_contacto = user.telefono;
+        }
+        if (!checkoutForm.value.direccion_entrega && user.direccion) {
+            checkoutForm.value.direccion_entrega = user.direccion;
+        }
+    }
+
+    if (props.sucursalActiva?.acepta_domicilios !== false) {
+        checkoutForm.value.tipo = 'domicilio';
+    } else if (props.sucursalActiva?.acepta_para_llevar !== false) {
+        checkoutForm.value.tipo = 'para_llevar';
+    } else if (props.sucursalActiva?.acepta_en_sitio !== false) {
+        checkoutForm.value.tipo = 'en_sitio';
+    }
+
     mostrarModalCheckout.value = true;
 }
 

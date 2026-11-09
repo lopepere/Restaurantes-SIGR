@@ -81,7 +81,7 @@ class CompraController extends Controller
                     'total' => (float) $item->total,
                 ]),
                 'puede_anular' => $c->estado->value === 'registrada',
-                'puede_devolver' => $c->estado->value === 'registrada',
+                'puede_devolver' => in_array($c->estado->value, ['registrada', 'devuelta_parcial'], true),
             ]);
 
         $proveedores = Proveedor::where('sucursal_id', $sucursalId)->where('activo', true)->get(['id', 'razon_social', 'nit']);
@@ -138,17 +138,26 @@ class CompraController extends Controller
     }
 
     /**
-     * Registra la devolución formal de una compra (RF-COM-07).
+     * Registra la devolución formal (total o parcial) de una compra (RF-COM-07, Item 4).
      */
     public function devolver(Request $request, Compra $compra, DevolverCompraAction $devolverAction): RedirectResponse
     {
         $validated = $request->validate([
             'motivo' => ['required', 'string', 'min:3', 'max:300'],
+            'tipo' => ['nullable', 'string', 'in:total,parcial'],
+            'items' => ['nullable', 'array'],
+            'items.*.compra_item_id' => ['required_with:items', 'integer'],
+            'items.*.cantidad' => ['required_with:items', 'numeric', 'min:0.01'],
         ]);
 
-        $devolverAction->handle($compra, $validated['motivo'], $request->user());
+        $devolverAction->handle(
+            $compra,
+            $validated['motivo'],
+            ($validated['tipo'] ?? 'total') === 'parcial' ? ($validated['items'] ?? null) : null,
+            $request->user()
+        );
 
-        return back()->with('success', "Devolución de Compra #{$compra->numero_factura} registrada.");
+        return back()->with('success', "Devolución de Compra #{$compra->numero_factura} registrada correctamente.");
     }
 
     /**

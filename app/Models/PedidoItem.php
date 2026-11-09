@@ -38,6 +38,9 @@ class PedidoItem extends Model
         'impuesto_monto',
         'descuento_aplicado',
         'total',
+        'anulado',
+        'motivo_anulacion',
+        'anulado_por_id',
         'notas',
         'combo_desglose',
     ];
@@ -56,6 +59,7 @@ class PedidoItem extends Model
             'impuesto_monto' => 'decimal:2',
             'descuento_aplicado' => 'decimal:2',
             'total' => 'decimal:2',
+            'anulado' => 'boolean',
             'combo_desglose' => 'array',
         ];
     }
@@ -74,5 +78,13 @@ class PedidoItem extends Model
     public function itemMenu(): BelongsTo
     {
         return $this->belongsTo(ItemMenu::class, 'item_menu_id');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function anuladoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'anulado_por_id');
     }
 }

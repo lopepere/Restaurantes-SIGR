@@ -27,12 +27,18 @@ class Sucursal extends Model
         'moneda',
         'idioma',
         'activa',
+        'acepta_domicilios',
+        'acepta_para_llevar',
+        'acepta_en_sitio',
     ];
 
     protected function casts(): array
     {
         return [
             'activa' => 'boolean',
+            'acepta_domicilios' => 'boolean',
+            'acepta_para_llevar' => 'boolean',
+            'acepta_en_sitio' => 'boolean',
         ];
     }
 

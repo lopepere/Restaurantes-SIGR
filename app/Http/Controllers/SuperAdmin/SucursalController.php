@@ -54,6 +54,9 @@ class SucursalController extends Controller
             'zona_horaria' => ['required', 'string', 'max:50'],
             'moneda' => ['required', 'string', 'max:10'],
             'idioma' => ['required', 'string', 'in:es,en'],
+            'acepta_domicilios' => ['nullable', 'boolean'],
+            'acepta_para_llevar' => ['nullable', 'boolean'],
+            'acepta_en_sitio' => ['nullable', 'boolean'],
         ]);
 
         $slug = ! empty($validated['slug']) ? Str::slug($validated['slug']) : Str::slug($validated['nombre']);
@@ -66,6 +69,9 @@ class SucursalController extends Controller
             'zona_horaria' => $validated['zona_horaria'],
             'moneda' => $validated['moneda'],
             'idioma' => $validated['idioma'],
+            'acepta_domicilios' => $validated['acepta_domicilios'] ?? true,
+            'acepta_para_llevar' => $validated['acepta_para_llevar'] ?? true,
+            'acepta_en_sitio' => $validated['acepta_en_sitio'] ?? true,
             'activa' => true,
         ]);
 
@@ -88,11 +94,34 @@ class SucursalController extends Controller
             'moneda' => ['required', 'string', 'max:10'],
             'idioma' => ['required', 'string', 'in:es,en'],
             'activa' => ['required', 'boolean'],
+            'acepta_domicilios' => ['nullable', 'boolean'],
+            'acepta_para_llevar' => ['nullable', 'boolean'],
+            'acepta_en_sitio' => ['nullable', 'boolean'],
         ]);
 
         $sucursal->update($validated);
 
         return back()->with('success', 'Sucursal actualizada.');
+    }
+
+    /**
+     * Alterna la habilitación de una modalidad de pedido (domicilio, para llevar, en sitio) (Item 9).
+     */
+    public function toggleModalidad(Request $request, Sucursal $sucursal): RedirectResponse
+    {
+        Gate::authorize('update', $sucursal);
+        $modalidad = (string) $request->input('modalidad');
+
+        if (in_array($modalidad, ['domicilio', 'para_llevar', 'en_sitio'], true)) {
+            $campo = match ($modalidad) {
+                'domicilio' => 'acepta_domicilios',
+                'para_llevar' => 'acepta_para_llevar',
+                'en_sitio' => 'acepta_en_sitio',
+            };
+            $sucursal->update([$campo => ! $sucursal->{$campo}]);
+        }
+
+        return back()->with('success', 'Modalidad de pedido actualizada para la sucursal.');
     }
 
     public function destroy(Sucursal $sucursal): RedirectResponse

@@ -55,6 +55,21 @@
                         <p class="text-xs text-stone-400">Tiempo estimado que permanece una mesa ocupada por una reserva confirmada.</p>
                     </div>
 
+                    <!-- Base de Efectivo Inicial en Caja (Item 6) -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-semibold uppercase text-stone-600 tracking-wider">
+                            Base de Caja en Efectivo Inicial ($ COP)
+                        </label>
+                        <input
+                            type="number"
+                            v-model.number="form.caja_base_efectivo_inicial"
+                            min="0"
+                            step="5000"
+                            class="w-full text-sm border border-stone-300 rounded-xl px-3 py-2 bg-stone-50 focus:bg-white focus:ring-2 focus:ring-amber-500 transition font-mono font-bold"
+                        />
+                        <p class="text-xs text-stone-400">Monto base predeterminado al abrir un turno de caja para entregar cambio.</p>
+                    </div>
+
                     <!-- Opciones booleanas -->
                     <div class="space-y-4 pt-2">
                         <label class="flex items-center space-x-3 cursor-pointer">
@@ -132,6 +147,7 @@ const form = reactive({
     propina_preseleccionar: props.configuraciones.propina_preseleccionar,
     reserva_duracion_minutos: props.configuraciones.reserva_duracion_minutos,
     reserva_aprobacion_automatica: props.configuraciones.reserva_aprobacion_automatica,
+    caja_base_efectivo_inicial: props.configuraciones.caja_base_efectivo_inicial || 100000,
 });
 
 function guardar() {
@@ -145,6 +161,7 @@ function guardar() {
             'propina.preseleccionar': form.propina_preseleccionar,
             'reserva.duracion_minutos': form.reserva_duracion_minutos,
             'reserva.aprobacion_automatica': form.reserva_aprobacion_automatica,
+            caja_base_efectivo_inicial: form.caja_base_efectivo_inicial,
         },
     }, {
         preserveScroll: true,

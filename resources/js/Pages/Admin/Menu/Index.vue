@@ -290,6 +290,26 @@
                         </div>
                     </div>
 
+                    <!-- Selector rápido de Catálogo Dinámico de Impuestos (Item 1) -->
+                    <div v-if="catalogoImpuestos && catalogoImpuestos.length > 0" class="p-2.5 bg-amber-50/50 rounded-xl border border-amber-200/80">
+                        <label class="block text-xs font-bold text-stone-700 mb-1">
+                            ⚖️ Seleccionar Tarifa del Catálogo de Impuestos:
+                        </label>
+                        <select
+                            @change="seleccionarTarifaImpuesto($event.target.value)"
+                            class="w-full text-xs border border-stone-300 rounded-lg p-1.5 bg-white text-stone-800"
+                        >
+                            <option value="">-- Tarifas configuradas por SuperAdmin --</option>
+                            <option
+                                v-for="imp in catalogoImpuestos.filter(i => i.activo)"
+                                :key="imp.id"
+                                :value="imp.id"
+                            >
+                                {{ imp.nombre }} ({{ imp.porcentaje }}%)
+                            </option>
+                        </select>
+                    </div>
+
                     <div>
                         <label class="block font-bold text-stone-700 mb-1">Descripción</label>
                         <textarea v-model="formItem.descripcion" rows="2" class="w-full border rounded-xl p-2 text-stone-900"></textarea>
@@ -303,6 +323,21 @@
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" v-model="formItem.controla_inventario" class="rounded text-orange-600" />
                             <span class="font-bold text-stone-800">Controla Inventario</span>
+                        </label>
+                    </div>
+
+                    <!-- Exclusión de descuento de categoría (Item 8) -->
+                    <div class="p-3 bg-amber-50/60 rounded-xl border border-amber-200">
+                        <label class="flex items-center gap-2.5 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                v-model="formItem.excluir_descuentos_categoria"
+                                class="rounded text-amber-600 focus:ring-amber-500 w-4 h-4"
+                            />
+                            <div>
+                                <span class="font-bold text-stone-800 block text-xs">Excluir de descuentos de categoría</span>
+                                <span class="text-[11px] text-stone-500">Si se activa, las promociones aplicadas a la categoría no rebajarán este producto/combo.</span>
+                            </div>
                         </label>
                     </div>
 
@@ -451,6 +486,10 @@ const props = defineProps({
     otrasSucursales: Array,
     filtros: Object,
     tiposImpuesto: Array,
+    catalogoImpuestos: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const tabActiva = ref('items');
@@ -508,6 +547,7 @@ const formItem = ref({
     impuesto_tipo: 'INC',
     impuesto_porcentaje: 8.0,
     es_combo: false,
+    excluir_descuentos_categoria: false,
     controla_inventario: true,
     existencia: 0,
     existencia_minima: 5,
@@ -516,6 +556,21 @@ const formItem = ref({
     orden: 0,
     combo_items: [],
 });
+
+function seleccionarTarifaImpuesto(id) {
+    if (!id) return;
+    const imp = (props.catalogoImpuestos || []).find(i => i.id === id);
+    if (imp) {
+        formItem.value.impuesto_porcentaje = Number(imp.porcentaje);
+        if (imp.codigo.startsWith('IVA')) {
+            formItem.value.impuesto_tipo = 'IVA';
+        } else if (imp.codigo.startsWith('INC')) {
+            formItem.value.impuesto_tipo = 'INC';
+        } else {
+            formItem.value.impuesto_tipo = 'EXENTO';
+        }
+    }
+}
 
 // Selección y filtrado de componentes para combos
 const comboProductoSeleccionadoId = ref('');
@@ -569,6 +624,7 @@ function abrirModalItem(item = null) {
     if (item) {
         formItem.value = {
             ...item,
+            excluir_descuentos_categoria: Boolean(item.excluir_descuentos_categoria),
             combo_items: item.items_del_combo ? item.items_del_combo.map(c => ({
                 item_id: c.id,
                 nombre: c.nombre,
@@ -584,6 +640,7 @@ function abrirModalItem(item = null) {
             impuesto_tipo: 'INC',
             impuesto_porcentaje: 8.0,
             es_combo: false,
+            excluir_descuentos_categoria: false,
             controla_inventario: true,
             existencia: 0,
             existencia_minima: 5,

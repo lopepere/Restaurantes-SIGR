@@ -52,6 +52,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'invitacion_enviada_at',
         'invitacion_aceptada_at',
         'politica_aceptada_at',
+        'current_session_id',
     ];
 
     protected $hidden = [
@@ -179,6 +180,14 @@ class User extends Authenticatable implements MustVerifyEmail
 
         if ($this->hasRole('admin')) {
             return '/admin';
+        }
+
+        if ($this->hasRole('cajero')) {
+            return '/cajero';
+        }
+
+        if ($this->hasRole('cocinero')) {
+            return '/cocina';
         }
 
         if ($this->hasRole('mesero')) {

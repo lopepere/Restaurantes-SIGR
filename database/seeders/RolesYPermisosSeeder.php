@@ -73,6 +73,8 @@ class RolesYPermisosSeeder extends Seeder
         $rolSuperAdmin = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
         $rolAdmin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $rolMesero = Role::firstOrCreate(['name' => 'mesero', 'guard_name' => 'web']);
+        $rolCajero = Role::firstOrCreate(['name' => 'cajero', 'guard_name' => 'web']);
+        $rolCocinero = Role::firstOrCreate(['name' => 'cocinero', 'guard_name' => 'web']);
         $rolCliente = Role::firstOrCreate(['name' => 'cliente', 'guard_name' => 'web']);
 
         // Asignación de permisos al rol Admin
@@ -118,6 +120,23 @@ class RolesYPermisosSeeder extends Seeder
             'pedidos.asignar_mesa',
             'reservas.ver',
             'espacios.gestionar',
+        ]);
+
+        // Asignación de permisos al rol Cajero
+        $rolCajero->syncPermissions([
+            'pedidos.ver',
+            'caja.abrir',
+            'caja.cobrar',
+            'caja.cerrar',
+            'comprobantes.ver',
+            'comprobantes.reenviar',
+            'comprobantes.imprimir',
+        ]);
+
+        // Asignación de permisos al rol Cocinero
+        $rolCocinero->syncPermissions([
+            'pedidos.ver',
+            'pedidos.cambiar_estado',
         ]);
 
         // Asignación de permisos al rol Cliente
