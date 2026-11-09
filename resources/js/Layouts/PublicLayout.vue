@@ -100,7 +100,7 @@
 
             <button
                 type="button"
-                @click="toggleCarrito"
+                @click="abrirElCarrito"
                 :class="[
                     'relative p-4 rounded-full shadow-2xl transition-all duration-300 flex items-center justify-center cursor-pointer group active:scale-95 focus:outline-hidden',
                     itemsCount > 0
@@ -168,7 +168,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['toggle-carrito']);
+const emit = defineEmits(['toggle-carrito', 'abrir-carrito']);
 const page = usePage();
 
 const dashboardUrl = computed(() => {
@@ -190,8 +190,10 @@ function cerrarSesion() {
     router.post('/logout');
 }
 
-function toggleCarrito() {
+function abrirElCarrito() {
+    emit('abrir-carrito');
     emit('toggle-carrito');
+    window.dispatchEvent(new CustomEvent('abrir-carrito'));
     window.dispatchEvent(new CustomEvent('toggle-carrito'));
 }
 </script>

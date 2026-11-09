@@ -1,5 +1,5 @@
 <template>
-    <PublicLayout :sucursal-nombre="sucursalActiva?.nombre" :items-count="totalItemsEnCarrito" @toggle-carrito="mostrarCarrito = !mostrarCarrito">
+    <PublicLayout :sucursal-nombre="sucursalActiva?.nombre" :items-count="totalItemsEnCarrito" @toggle-carrito="abrirCarrito" @abrir-carrito="abrirCarrito">
         <!-- Alerta flotante de Inventario / Rol en tiempo real -->
         <div v-if="alertaInventario" class="fixed top-20 right-6 z-50 max-w-md bg-amber-500 text-stone-950 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-amber-300 animate-bounce">
             <span class="text-xl">⚠️</span>
@@ -269,7 +269,8 @@
         </section>
 
         <!-- Modal / Drawer del Carrito de Pedido (RF-PUB-09, SC-02) -->
-        <div v-if="mostrarCarrito" class="fixed inset-0 z-50 overflow-hidden">
+        <Teleport to="body">
+            <div v-if="mostrarCarrito" class="fixed inset-0 z-[9999] overflow-hidden">
             <div class="absolute inset-0 bg-stone-900/40 backdrop-blur-xs transition-opacity" @click="mostrarCarrito = false"></div>
 
             <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
@@ -453,9 +454,40 @@
                 </div>
             </div>
         </div>
+        </Teleport>
+
+        <!-- Barra flotante resumen inferior cuando hay productos en el pedido -->
+        <Teleport to="body">
+            <div
+                v-if="totalItemsEnCarrito > 0 && !mostrarCarrito && !mostrarModalCheckout"
+                class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9990] max-w-lg w-[92%] sm:w-auto bg-stone-900/95 backdrop-blur-md text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center justify-between gap-5 border border-stone-700/80"
+            >
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl animate-bounce">🛎️</span>
+                    <div>
+                        <p class="text-xs font-bold text-amber-400">
+                            {{ totalItemsEnCarrito }} {{ totalItemsEnCarrito === 1 ? 'producto en tu comanda' : 'productos en tu comanda' }}
+                        </p>
+                        <p class="text-sm font-black text-white">
+                            Total: {{ formatearMoneda(resumenTotales.total) }}
+                        </p>
+                    </div>
+                </div>
+
+                <button
+                    type="button"
+                    @click="abrirCarrito"
+                    class="bg-orange-600 hover:bg-orange-500 text-white text-xs font-black px-4 py-2.5 rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95"
+                >
+                    <span>Ver Mi Pedido</span>
+                    <span>→</span>
+                </button>
+            </div>
+        </Teleport>
 
         <!-- Modal de Checkout / Confirmación de Pedido en Tiempo Real -->
-        <div v-if="mostrarModalCheckout" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+        <Teleport to="body">
+            <div v-if="mostrarModalCheckout" class="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
             <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 sm:p-8 overflow-hidden relative max-h-[92vh] flex flex-col">
                 <div class="flex justify-between items-center pb-4 border-b border-stone-100">
                     <div>
@@ -581,6 +613,7 @@
                 </div>
             </div>
         </div>
+        </Teleport>
     </PublicLayout>
 </template>
 
@@ -627,14 +660,17 @@ const tipoPropina = ref('ninguna'); // 'ninguna', '5', '10', 'abierta'
 const porcentajePropina = ref(0);
 const valorPropinaLibre = ref(0);
 
+function abrirCarrito() {
+    mostrarCarrito.value = true;
+}
+
 // Cargar carrito previo de localStorage si corresponde a esta sucursal
 onMounted(() => {
-    const handleToggleCarrito = () => {
-        mostrarCarrito.value = !mostrarCarrito.value;
-    };
-    window.addEventListener('toggle-carrito', handleToggleCarrito);
+    window.addEventListener('toggle-carrito', abrirCarrito);
+    window.addEventListener('abrir-carrito', abrirCarrito);
     onUnmounted(() => {
-        window.removeEventListener('toggle-carrito', handleToggleCarrito);
+        window.removeEventListener('toggle-carrito', abrirCarrito);
+        window.removeEventListener('abrir-carrito', abrirCarrito);
     });
 
     const claveLocal = `sigr_carrito_${props.sucursalActiva?.id}`;
@@ -743,6 +779,8 @@ function agregarAlCarrito(item) {
         notas: '',
     });
     guardarCarrito();
+    // Desplegar automáticamente la ventana del pedido al agregar un plato
+    mostrarCarrito.value = true;
 }
 
 function incrementarCantidad(item) {
@@ -759,6 +797,7 @@ function incrementarCantidad(item) {
         }
         encontrado.cantidad++;
         guardarCarrito();
+        mostrarCarrito.value = true;
     } else {
         agregarAlCarrito(item);
     }
