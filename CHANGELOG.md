@@ -6,6 +6,42 @@ Todos los cambios notables de este proyecto serán documentados en este archivo 
 
 ## [Sin publicar]
 
+### Añadido (Iteración I-4 · Reservas y Mesas) [LB-01]
+- **Migraciones de Base de Datos**:
+  - `tipos_mesa`: clasificación y capacidades (`capacidad_minima`, `capacidad_maxima`), con flag de soporte para reservas abiertas (`es_abierta`) con mínimo de personas requerido.
+  - `espacios`: incorporación de clave foránea `tipo_mesa_id` vinculada a `tipos_mesa`.
+  - `horarios_atencion`: horarios de apertura y cierre por día de la semana (0=Domingo..6=Sábado) para cada sucursal.
+  - `categorias_reserva`: tipificación de reservas con fines comerciales o de servicio («Mesa estándar», «Cumpleaños», «Evento especial»).
+  - `reservas`: almacenamiento de reservas con código correlativo único por sucursal (`RES-{SUCURSAL_ID}-{YYYYMMDD}-{0001}`), estados del ciclo de vida (`EstadoReserva`: PENDIENTE, CONFIRMADA, CUMPLIDA, NO_ASISTIO, CANCELADA), franja horaria (`hora_inicio`, `hora_fin`), comensales, mesa asignada, datos de contacto del cliente o invitado, notas especiales y auditoría de cancelación.
+- **Modelos, Enums y Observadores**:
+  - `App\Models\TipoMesa`, `App\Models\HorarioAtencion`, `App\Models\CategoriaReserva`, `App\Models\Reserva`.
+  - `App\Observers\EspacioObserver`: difusión automática del evento `EspacioActualizado` en el canal WebSocket público `sucursal.{id}.mesas` ante cualquier cambio en el estado de una mesa (CA-24).
+  - `App\Policies\ReservaPolicy`: políticas de seguridad para autorización granular de administradores de sucursal, super administradores y autoservicio de clientes.
+- **Motor de Disponibilidad y Acciones de Dominio (Monolito Modular)**:
+  - `App\Services\DisponibilidadService::franjas($sucursalId, $fecha, $personas)`: motor algorítmico que calcula franjas horarias respetando el horario de atención del día de la semana, la duración configurada de reserva (`reserva.duracion_minutos`), el intervalo entre franjas (`reserva.intervalo_minutos`), anticipación mínima para el mismo día (`reserva.anticipacion_minima_horas`), exclusión matemática de mesas ocupadas por reservas activas solapadas (`inicio_reserva < fin_franja AND fin_reserva > inicio_franja`) (CA-22), exclusión de mesas ocupadas por comandas de salón activas hoy, y resolución de mesas con capacidad mínima o tipo abierto.
+  - `App\Actions\Reservas\CrearReservaAction`: asignación óptima de mesa según capacidad; aprobación automática inmediata si el parámetro `reserva.aprobacion_automatica` está activo o asignación de estado PENDIENTE; creación de cuenta implícita para invitados con envío de enlace firmado de 72h (`OrigenUsuario::RESERVA`, CA-01, CA-12); emisión de eventos WebSocket y notificación por correo.
+  - `App\Actions\Reservas\AprobarReservaAction`: confirmación administrativa de reservas pendientes con notificación por correo al cliente (RF-RES-07).
+  - `App\Actions\Reservas\CancelarReservaAction`: anulación de reservas activas por parte del cliente o personal con registro obligatorio de motivo y actor (RF-RES-08, CA-23).
+  - `App\Actions\Reservas\ReprogramarReservaAction`: validación de disponibilidad y reasignación de mesa en nueva fecha y franja horaria (RF-RES-09).
+  - `App\Actions\Reservas\MarcarAsistenciaReservaAction`: registro de cumplimiento de la reserva (`CUMPLIDA` o `NO_ASISTIO`) (RF-RES-10).
+- **WebSockets en Tiempo Real (Laravel Reverb)**:
+  - `App\Events\EspacioActualizado`: canal público `sucursal.{id}.mesas` para actualización inmediata del mapa de salón.
+  - `App\Events\ReservaCreada` y `App\Events\ReservaActualizada`: canales privados `sucursal.{id}.reservas` y `cliente.{id}.reservas`.
+- **Notificaciones por Correo Electrónico Encoladas**:
+  - `App\Notifications\ReservaConfirmadaNotification`: resumen completo de la reserva aprobada y datos de contacto de la sede.
+  - `App\Notifications\EstadoReservaActualizadoNotification`: aviso ante cambios de estado, reprogramación o cancelación.
+- **Frontend Inertia.js (Vue 3 + Tailwind CSS 4)**:
+  - `Public/Reservas.vue`: calendario interactivo público (RF-PUB-07) con selector de sede, comensales, fecha, ocasión, carga reactiva de franjas horarias con indicación de disponibilidad/motivo en vivo, formulario de contacto y aviso de política de datos Ley 1581 de 2012.
+  - `Public/ReservaConfirmada.vue`: comprobante y pantalla de confirmación con código de reserva destacado.
+  - `Cliente/Reservas/Index.vue`: historial y reservas activas del cliente con badge de estado, enlace a nueva reserva, modal de auto-cancelación (CA-23) y refresco vía WebSocket.
+  - `Admin/Reservas/Index.vue`: monitor administrativo de reservas con 6 pestañas («Próximas», «Para Hoy», «Pendientes», «Confirmadas», «Histórico», «Todas»), filtros rápidos por nombre/teléfono/código y fecha, aprobación rápida, modales de cancelación y reprogramación, botones de asistencia y chime sonoro con Web Audio API.
+  - `Admin/Espacios/Index.vue`: mapa en vivo de mesas y salón con resumen de conteos (`libres`, `ocupadas`, `reservadas`, `fuera_servicio`), visualización de comandas activas en mesa, selector rápido de estado, creación/edición de mesas y validación de relaciones activas antes de borrado.
+- **Seeders**:
+  - `ReservaSeeder`: tipos de mesa (Barra, Mesas de 2 a 8 puestos, Salón abierto para eventos), horarios de atención de lunes a domingo de 12:00 a 22:00, categorías de reserva («Mesa estándar», «Cumpleaños», «Evento especial») y reservas de demostración.
+- **Pruebas Automatizadas (Pest)**:
+  - 14 pruebas exhaustivas nuevas en `tests/Feature/Reservas/DisponibilidadTest.php` y `tests/Feature/Reservas/ReservaTest.php`.
+  - Suite global: 73 pruebas, 334 aserciones, 100% pasando (~7.4s).
+
 ### Añadido (Iteración I-3 · Pedidos en tiempo real) [LB-01]
 - **Migraciones de Base de Datos**:
   - `espacios`: control físico de mesas, barras y salones con capacidad, estado operativo (`EstadoEspacio`) y sucursal.

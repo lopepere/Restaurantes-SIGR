@@ -106,4 +106,44 @@ class Sucursal extends Model
     {
         return $this->hasMany(Pedido::class, 'sucursal_id');
     }
+
+    /**
+     * Tipos de mesa configurados en esta sucursal.
+     *
+     * @return HasMany<TipoMesa, $this>
+     */
+    public function tiposMesa(): HasMany
+    {
+        return $this->hasMany(TipoMesa::class, 'sucursal_id');
+    }
+
+    /**
+     * Horarios de atención configurados en esta sucursal.
+     *
+     * @return HasMany<HorarioAtencion, $this>
+     */
+    public function horariosAtencion(): HasMany
+    {
+        return $this->hasMany(HorarioAtencion::class, 'sucursal_id');
+    }
+
+    /**
+     * Categorías de reserva de esta sucursal.
+     *
+     * @return HasMany<CategoriaReserva, $this>
+     */
+    public function categoriasReserva(): HasMany
+    {
+        return $this->hasMany(CategoriaReserva::class, 'sucursal_id');
+    }
+
+    /**
+     * Reservas realizadas en esta sucursal.
+     *
+     * @return HasMany<Reserva, $this>
+     */
+    public function reservas(): HasMany
+    {
+        return $this->hasMany(Reserva::class, 'sucursal_id');
+    }
 }

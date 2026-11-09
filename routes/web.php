@@ -2,20 +2,24 @@
 
 use App\Http\Controllers\Admin\BitacoraController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\EspacioController;
 use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\MeseroController;
 use App\Http\Controllers\Admin\PapeleraController;
 use App\Http\Controllers\Admin\PedidoController as AdminPedidoController;
 use App\Http\Controllers\Admin\PromocionController;
+use App\Http\Controllers\Admin\ReservaController as AdminReservaController;
 use App\Http\Controllers\Auth\InvitacionController;
 use App\Http\Controllers\Auth\RegistroController;
 use App\Http\Controllers\Cliente\DashboardController as ClienteDashboardController;
 use App\Http\Controllers\Cliente\PedidoController as ClientePedidoController;
 use App\Http\Controllers\Cliente\PerfilController;
+use App\Http\Controllers\Cliente\ReservaController as ClienteReservaController;
 use App\Http\Controllers\Mesero\DashboardController as MeseroDashboardController;
 use App\Http\Controllers\Mesero\PedidoController as MeseroPedidoController;
 use App\Http\Controllers\Public\HomeController;
 use App\Http\Controllers\Public\PedidoPublicoController;
+use App\Http\Controllers\Public\ReservaPublicaController;
 use App\Http\Controllers\SuperAdmin\AdministradorController;
 use App\Http\Controllers\SuperAdmin\DashboardController as SuperAdminDashboardController;
 use App\Http\Controllers\SuperAdmin\SucursalController;
@@ -30,6 +34,12 @@ Route::get('/', HomeController::class)->name('home');
 Route::get('/sucursal/{slug}', HomeController::class)->name('home.sucursal');
 Route::post('/pedidos', [PedidoPublicoController::class, 'store'])->name('pedidos.publico.store');
 Route::get('/pedidos/confirmado/{numero}', [PedidoPublicoController::class, 'confirmado'])->name('pedidos.publico.confirmado');
+
+// Reservas Públicas (RF-PUB-07, Prompt Maestro I-4)
+Route::get('/reservar', [ReservaPublicaController::class, 'create'])->name('reservas.publico.create');
+Route::get('/reservas/franjas', [ReservaPublicaController::class, 'franjas'])->name('reservas.publico.franjas');
+Route::post('/reservas', [ReservaPublicaController::class, 'store'])->name('reservas.publico.store');
+Route::get('/reservas/confirmada/{codigo}', [ReservaPublicaController::class, 'confirmada'])->name('reservas.publico.confirmada');
 
 // Registro voluntario desde el home (RF-USR-14, SC-01)
 Route::get('/registro', [RegistroController::class, 'create'])->name('registro');
@@ -56,6 +66,10 @@ Route::middleware(['auth', 'verified', 'role:cliente'])->prefix('cliente')->name
     Route::put('/pedidos/{pedido}/notas', [ClientePedidoController::class, 'editarNotas'])->name('pedidos.notas.update');
     Route::post('/pedidos/{pedido}/cancelar', [ClientePedidoController::class, 'solicitarCancelacion'])->name('pedidos.cancelar');
     Route::post('/pedidos/{pedido}/repetir', [ClientePedidoController::class, 'repetir'])->name('pedidos.repetir');
+
+    // Reservas del cliente (RF-RES-10, CA-23)
+    Route::get('/reservas', [ClienteReservaController::class, 'index'])->name('reservas.index');
+    Route::post('/reservas/{reserva}/cancelar', [ClienteReservaController::class, 'cancelar'])->name('reservas.cancelar');
 });
 
 /*
@@ -86,6 +100,19 @@ Route::middleware(['auth', 'role:admin|super_admin'])->prefix('admin')->name('ad
     Route::get('/pedidos', [AdminPedidoController::class, 'index'])->name('pedidos.index');
     Route::post('/pedidos/{pedido}/estado', [AdminPedidoController::class, 'cambiarEstado'])->name('pedidos.estado');
     Route::post('/pedidos/{pedido}/resolver-cancelacion', [AdminPedidoController::class, 'resolverCancelacion'])->name('pedidos.resolver-cancelacion');
+
+    // Gestión y Monitor de Reservas (RF-RES-01..13, CA-22)
+    Route::get('/reservas', [AdminReservaController::class, 'index'])->name('reservas.index');
+    Route::post('/reservas/{reserva}/aprobar', [AdminReservaController::class, 'aprobar'])->name('reservas.aprobar');
+    Route::post('/reservas/{reserva}/cancelar', [AdminReservaController::class, 'cancelar'])->name('reservas.cancelar');
+    Route::post('/reservas/{reserva}/reprogramar', [AdminReservaController::class, 'reprogramar'])->name('reservas.reprogramar');
+    Route::post('/reservas/{reserva}/asistencia', [AdminReservaController::class, 'asistencia'])->name('reservas.asistencia');
+
+    // Gestión y Mapa en Vivo de Espacios / Mesas (RF-RES-01, RF-ESP-01..05, CA-24)
+    Route::get('/espacios', [EspacioController::class, 'index'])->name('espacios.index');
+    Route::post('/espacios', [EspacioController::class, 'store'])->name('espacios.store');
+    Route::put('/espacios/{espacio}', [EspacioController::class, 'update'])->name('espacios.update');
+    Route::delete('/espacios/{espacio}', [EspacioController::class, 'destroy'])->name('espacios.destroy');
 
     // CRUD de Meseros de la sucursal (RF-USR-09)
     Route::get('/meseros', [MeseroController::class, 'index'])->name('meseros.index');

@@ -23,7 +23,7 @@
                     <a href="/" class="text-stone-700 hover:text-orange-600 transition">Inicio</a>
                     <a href="/#menu" class="text-stone-700 hover:text-orange-600 transition">Menú</a>
                     <a href="/#promociones" class="text-stone-700 hover:text-orange-600 transition">Promociones</a>
-                    <a href="/#reservas" class="text-stone-700 hover:text-orange-600 transition">Reservas</a>
+                    <a href="/reservar" class="text-stone-700 hover:text-orange-600 transition">Reservar Mesa</a>
 
                     <!-- Indicador de Sucursal activa -->
                     <div class="flex items-center space-x-1.5 bg-stone-100 px-3 py-1.5 rounded-lg border border-stone-200 text-stone-700 text-xs">

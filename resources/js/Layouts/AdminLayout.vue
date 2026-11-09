@@ -29,7 +29,11 @@
                 </a>
                 <a href="/admin/reservas" class="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-stone-800 text-stone-300 hover:text-white transition">
                     <span>📅</span>
-                    <span>Reservas y Mesas</span>
+                    <span>Reservas</span>
+                </a>
+                <a href="/admin/espacios" class="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-stone-800 text-stone-300 hover:text-white transition">
+                    <span>🪑</span>
+                    <span>Mapa de Mesas</span>
                 </a>
                 <a href="/admin/caja" class="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-stone-800 text-stone-300 hover:text-white transition">
                     <span>💵</span>
