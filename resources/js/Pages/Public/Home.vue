@@ -779,8 +779,6 @@ function agregarAlCarrito(item) {
         notas: '',
     });
     guardarCarrito();
-    // Desplegar automáticamente la ventana del pedido al agregar un plato
-    mostrarCarrito.value = true;
 }
 
 function incrementarCantidad(item) {
@@ -797,7 +795,6 @@ function incrementarCantidad(item) {
         }
         encontrado.cantidad++;
         guardarCarrito();
-        mostrarCarrito.value = true;
     } else {
         agregarAlCarrito(item);
     }
