@@ -24,6 +24,7 @@ class Categoria extends Model
         'orden',
         'icono',
         'activa',
+        'es_sistema',
     ];
 
     protected function casts(): array
@@ -31,6 +32,7 @@ class Categoria extends Model
         return [
             'orden' => 'integer',
             'activa' => 'boolean',
+            'es_sistema' => 'boolean',
         ];
     }
 
@@ -56,5 +58,39 @@ class Categoria extends Model
     public function promociones(): BelongsToMany
     {
         return $this->belongsToMany(Promocion::class, 'promocion_categoria');
+    }
+
+    /**
+     * Garantiza que exista la categoría inmutable del sistema "Sin categorizar" para la sucursal dada.
+     */
+    public static function asegurarSinCategorizar(int $sucursalId): self
+    {
+        $categoria = static::withoutGlobalScopes()
+            ->withTrashed()
+            ->where('sucursal_id', $sucursalId)
+            ->where('slug', 'sin-categorizar')
+            ->first();
+
+        if ($categoria) {
+            if ($categoria->trashed()) {
+                $categoria->restore();
+            }
+            if (! $categoria->es_sistema || ! $categoria->activa) {
+                $categoria->update(['es_sistema' => true, 'activa' => true]);
+            }
+
+            return $categoria;
+        }
+
+        return static::withoutGlobalScopes()->create([
+            'sucursal_id' => $sucursalId,
+            'nombre' => 'Sin categorizar',
+            'slug' => 'sin-categorizar',
+            'descripcion' => 'Categoría por defecto del sistema para productos sin categoría asignada.',
+            'orden' => 999,
+            'icono' => '📦',
+            'activa' => true,
+            'es_sistema' => true,
+        ]);
     }
 }

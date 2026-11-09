@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -26,6 +28,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string|null $avatar
  * @property string $idioma
  * @property bool $activo
+ * @property string|null $current_session_id
  * @property OrigenUsuario $origen
  * @property Carbon|null $email_verified_at
  * @property Carbon $created_at
@@ -195,5 +198,45 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         return '/cliente';
+    }
+
+    /**
+     * Determina si el usuario ya posee una sesión activa en otro navegador o dispositivo.
+     */
+    public function tieneSesionActiva(?string $currentSessionId = null): bool
+    {
+        if (empty($this->current_session_id)) {
+            return false;
+        }
+
+        if ($currentSessionId !== null && $this->current_session_id === $currentSessionId) {
+            return false;
+        }
+
+        if (config('session.driver') === 'database' && Schema::hasTable('sessions')) {
+            $lifetime = (int) config('session.lifetime', 120);
+            $expiraAntesDe = now()->subMinutes($lifetime)->getTimestamp();
+
+            return DB::table('sessions')
+                ->where('id', $this->current_session_id)
+                ->where('last_activity', '>=', $expiraAntesDe)
+                ->exists();
+        }
+
+        return true;
+    }
+
+    /**
+     * Libera el identificador de sesión activa del usuario y elimina el registro de sesión en BD.
+     */
+    public function liberarSesionActiva(): void
+    {
+        $oldSessionId = $this->current_session_id;
+        $this->current_session_id = null;
+        $this->saveQuietly();
+
+        if ($oldSessionId && Schema::hasTable('sessions')) {
+            DB::table('sessions')->where('id', $oldSessionId)->delete();
+        }
     }
 }

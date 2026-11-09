@@ -223,7 +223,15 @@
                             <div>
                                 <span class="font-mono font-bold text-stone-800">#{{ pago.pedido_numero }}</span>
                                 <span class="text-stone-400 text-[11px] ml-2 font-mono">{{ pago.hora }}</span>
-                                <span class="block text-stone-500 text-[11px]">{{ pago.metodo }}</span>
+                                <span class="block text-stone-500 text-[11px]">
+                                    {{ pago.metodo }}
+                                    <span v-if="pago.referencia_transaccion" class="font-mono font-semibold text-stone-700">
+                                        &bull; Ref: {{ pago.referencia_transaccion }}
+                                    </span>
+                                </span>
+                                <span v-if="pago.nota_adicional" class="block text-[10px] text-stone-400 italic">
+                                    Nota: {{ pago.nota_adicional }}
+                                </span>
                             </div>
                             <div class="text-right">
                                 <span class="font-bold font-mono text-stone-900 block">${{ pago.monto.toLocaleString() }}</span>
@@ -491,6 +499,36 @@
                         </span>
                     </div>
 
+                    <div v-else class="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2.5">
+                        <div>
+                            <label class="block font-semibold text-stone-700 mb-1">
+                                Número de la Transacción / Referencia <span class="text-rose-600">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                v-model="referenciaTransaccionInput"
+                                placeholder="Ej: 849201, APROB-1029, Nequi-99381..."
+                                class="w-full rounded-xl border border-stone-300 p-2 text-xs font-mono font-bold"
+                                required
+                            />
+                            <p v-if="errorReferenciaPago" class="text-[11px] text-rose-600 font-semibold mt-1">
+                                {{ errorReferenciaPago }}
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-stone-700 mb-1">
+                                Nota Adicional <span class="text-stone-400 font-normal">(Opcional)</span>
+                            </label>
+                            <input
+                                type="text"
+                                v-model="notaAdicionalInput"
+                                placeholder="Ej: Datáfono Redeban, transferencia Bancolombia..."
+                                class="w-full rounded-xl border border-stone-300 p-2 text-xs"
+                            />
+                        </div>
+                    </div>
+
                     <div class="p-3 bg-stone-50 rounded-xl space-y-1 font-mono text-xs">
                         <div class="flex justify-between">
                             <span>Subtotal + Imp:</span>
@@ -654,6 +692,9 @@ const modalPagoAbierto = ref(false);
 const pedidoSeleccionado = ref(null);
 const metodoSeleccionado = ref('efectivo');
 const montoRecibidoInput = ref(0);
+const referenciaTransaccionInput = ref('');
+const notaAdicionalInput = ref('');
+const errorReferenciaPago = ref('');
 
 const formPago = useForm({
     propina_valor: 0,
@@ -664,6 +705,9 @@ const abrirModalPago = (pedido) => {
     pedidoSeleccionado.value = pedido;
     formPago.propina_valor = 0;
     metodoSeleccionado.value = 'efectivo';
+    referenciaTransaccionInput.value = '';
+    notaAdicionalInput.value = '';
+    errorReferenciaPago.value = '';
     montoRecibidoInput.value = (pedido.subtotal + pedido.impuestos);
     modalPagoAbierto.value = true;
 };
@@ -682,12 +726,20 @@ const calcularTotalCobro = () => {
 const ejecutarCobro = () => {
     if (!pedidoSeleccionado.value) return;
 
+    if (metodoSeleccionado.value !== 'efectivo' && !referenciaTransaccionInput.value.trim()) {
+        errorReferenciaPago.value = 'Debes ingresar el número de la transacción para pagos con tarjeta o transferencia.';
+        return;
+    }
+    errorReferenciaPago.value = '';
+
     const total = calcularTotalCobro();
     formPago.pagos = [
         {
             metodo_pago: metodoSeleccionado.value,
             monto: total,
             monto_recibido: metodoSeleccionado.value === 'efectivo' ? montoRecibidoInput.value : total,
+            referencia_transaccion: metodoSeleccionado.value !== 'efectivo' ? referenciaTransaccionInput.value.trim() : null,
+            nota_adicional: metodoSeleccionado.value !== 'efectivo' && notaAdicionalInput.value.trim() ? notaAdicionalInput.value.trim() : null,
         },
     ];
 

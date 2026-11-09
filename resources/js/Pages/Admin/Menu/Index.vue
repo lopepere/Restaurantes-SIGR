@@ -8,7 +8,17 @@
                     <p class="text-xs text-stone-500 mt-0.5">Administra categorías, platillos, bebidas, combos y disponibilidad en tiempo real.</p>
                 </div>
 
-                <div class="flex items-center gap-2.5">
+                <div class="flex flex-wrap items-center gap-2">
+                    <!-- Botón Importar CSV/Excel y Descargar Plantilla (Item 1) -->
+                    <button
+                        type="button"
+                        @click="modalImportarVisible = true"
+                        class="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold rounded-xl border border-emerald-200 transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                        <span>📥</span>
+                        <span>Importar CSV / Excel y Plantilla</span>
+                    </button>
+
                     <!-- Botón Copiar Menú (CA-25, RF-MEN-09) -->
                     <button
                         v-if="otrasSucursales.length > 0"
@@ -111,12 +121,23 @@
                             </tr>
                             <tr v-for="item in items.data" :key="item.id" class="hover:bg-stone-50/70 transition">
                                 <td class="p-3.5 pl-5">
-                                    <div class="flex items-center gap-2">
-                                        <span v-if="item.es_combo" class="bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase">
+                                    <div class="flex items-center gap-3">
+                                        <div
+                                            v-if="item.imagen"
+                                            class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl overflow-hidden border border-stone-200 bg-stone-100 shrink-0"
+                                        >
+                                            <img
+                                                :src="item.imagen"
+                                                :alt="item.nombre"
+                                                class="w-full h-full object-cover"
+                                                loading="lazy"
+                                            />
+                                        </div>
+                                        <span v-if="item.es_combo" class="bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase shrink-0">
                                             Combo
                                         </span>
-                                        <div>
-                                            <span class="font-bold text-stone-900 block">{{ item.nombre }}</span>
+                                        <div class="min-w-0">
+                                            <span class="font-bold text-stone-900 block truncate">{{ item.nombre }}</span>
                                             <span class="text-[11px] text-stone-400 line-clamp-1">{{ item.descripcion }}</span>
                                         </div>
                                     </div>
@@ -188,7 +209,15 @@
                         <tbody class="divide-y divide-stone-100">
                             <tr v-for="cat in categorias" :key="cat.id" class="hover:bg-stone-50/70 transition">
                                 <td class="p-3.5 pl-5 font-bold text-stone-400">{{ cat.orden }}</td>
-                                <td class="p-3.5 font-bold text-stone-900">{{ cat.nombre }}</td>
+                                <td class="p-3.5 font-bold text-stone-900">
+                                    <span>{{ cat.nombre }}</span>
+                                    <span
+                                        v-if="cat.es_sistema || cat.slug === 'sin-categorizar'"
+                                        class="ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-stone-200 text-stone-700"
+                                    >
+                                        🔒 Por defecto del sistema
+                                    </span>
+                                </td>
                                 <td class="p-3.5 text-stone-500">{{ cat.descripcion || '—' }}</td>
                                 <td class="p-3.5 font-semibold text-stone-700">{{ cat.items_count || 0 }} productos</td>
                                 <td class="p-3.5">
@@ -200,18 +229,25 @@
                                     </span>
                                 </td>
                                 <td class="p-3.5 pr-5 text-right space-x-2">
-                                    <button
-                                        @click="abrirModalCategoria(cat)"
-                                        class="text-orange-600 hover:text-orange-800 font-semibold"
-                                    >
-                                        Editar
-                                    </button>
-                                    <button
-                                        @click="eliminarCategoria(cat)"
-                                        class="text-rose-600 hover:text-rose-800 font-semibold"
-                                    >
-                                        Eliminar
-                                    </button>
+                                    <template v-if="cat.es_sistema || cat.slug === 'sin-categorizar'">
+                                        <span class="text-[11px] text-stone-400 italic font-medium">
+                                            🔒 No editable ni borrable
+                                        </span>
+                                    </template>
+                                    <template v-else>
+                                        <button
+                                            @click="abrirModalCategoria(cat)"
+                                            class="text-orange-600 hover:text-orange-800 font-semibold"
+                                        >
+                                            Editar
+                                        </button>
+                                        <button
+                                            @click="eliminarCategoria(cat)"
+                                            class="text-rose-600 hover:text-rose-800 font-semibold"
+                                        >
+                                            Eliminar
+                                        </button>
+                                    </template>
                                 </td>
                             </tr>
                         </tbody>
@@ -313,6 +349,51 @@
                     <div>
                         <label class="block font-bold text-stone-700 mb-1">Descripción</label>
                         <textarea v-model="formItem.descripcion" rows="2" class="w-full border rounded-xl p-2 text-stone-900"></textarea>
+                    </div>
+
+                    <!-- Imagen Opcional del Producto (Item 1) -->
+                    <div class="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="block font-bold text-stone-800 text-xs">
+                                🖼️ Imagen del Producto <span class="text-stone-400 font-normal">(Opcional)</span>
+                            </label>
+                            <span class="text-[10px] text-stone-500 font-mono">Máx. 5 MB &bull; .jpg, .jpeg, .png, .webp</span>
+                        </div>
+                        <p class="text-[11px] text-stone-500">
+                            Dimensiones sugeridas: <strong>250x250</strong>, <strong>300x300</strong> o <strong>500x500 – 600x600 px</strong>. El contenedor ajusta automáticamente la imagen en móvil y escritorio.
+                        </p>
+
+                        <div class="flex items-center gap-3">
+                            <div
+                                v-if="vistaPreviaImagen || (formItem.imagen && !formItem.quitar_imagen)"
+                                class="w-16 h-16 rounded-xl overflow-hidden border border-stone-300 bg-white shrink-0 relative"
+                            >
+                                <img
+                                    :src="vistaPreviaImagen || formItem.imagen"
+                                    alt="Vista previa"
+                                    class="w-full h-full object-cover"
+                                />
+                            </div>
+                            <div class="flex-1 space-y-1.5">
+                                <input
+                                    type="file"
+                                    accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                                    @change="seleccionarArchivoImagen"
+                                    class="block w-full text-xs text-stone-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-orange-100 file:text-orange-800 hover:file:bg-orange-200 cursor-pointer"
+                                />
+                                <button
+                                    v-if="vistaPreviaImagen || (formItem.imagen && !formItem.quitar_imagen)"
+                                    type="button"
+                                    @click="limpiarImagenProducto"
+                                    class="text-[11px] text-rose-600 hover:underline font-semibold"
+                                >
+                                    Quitar imagen asociada
+                                </button>
+                                <p v-if="errorImagenProducto" class="text-[11px] text-rose-600 font-bold">
+                                    {{ errorImagenProducto }}
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-3 p-3 bg-stone-50 rounded-xl border border-stone-200">
@@ -468,6 +549,75 @@
                 </form>
             </div>
         </div>
+
+        <!-- Modal Importar Productos CSV/Excel y Descargar Plantilla (Item 1) -->
+        <div v-if="modalImportarVisible" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/50 backdrop-blur-xs">
+            <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-stone-200 space-y-4">
+                <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+                    <h3 class="text-base font-black text-stone-900 flex items-center gap-2">
+                        <span>📥</span>
+                        <span>Importación de Productos (.CSV / Excel)</span>
+                    </h3>
+                    <button type="button" @click="modalImportarVisible = false" class="text-stone-400 hover:text-stone-700">✕</button>
+                </div>
+
+                <!-- Mensaje importante requerido para el usuario -->
+                <div class="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-950 space-y-1.5 leading-relaxed">
+                    <p class="font-black flex items-center gap-1.5">
+                        <span>⚠️</span>
+                        <span>Importante antes de importar tus productos:</span>
+                    </p>
+                    <p>
+                        Previamente deben existir las <strong>categorías</strong> en el sistema para asociar los productos a dichas categorías.
+                        Si se cargan productos y no hay categorías creadas o asociadas en el archivo, se agruparán automáticamente por defecto en
+                        <strong>«Sin categorizar»</strong> (parámetro del sistema inmutable, no editable ni borrable) para evitar errores.
+                    </p>
+                </div>
+
+                <!-- Paso 1: Descargar plantilla con 6 productos de prueba -->
+                <div class="p-4 rounded-2xl bg-stone-50 border border-stone-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs">
+                    <div>
+                        <span class="font-bold text-stone-900 block">1. Plantilla Inicial con 6 Productos de Prueba</span>
+                        <span class="text-[11px] text-stone-500">Incluye las columnas listas para abrir y editar en Excel o CSV.</span>
+                    </div>
+                    <a
+                        href="/admin/menu/plantilla"
+                        class="px-3.5 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs text-center shrink-0 transition"
+                    >
+                        📄 Descargar Plantilla (6 Productos)
+                    </a>
+                </div>
+
+                <!-- Paso 2: Subir archivo CSV o Excel -->
+                <form @submit.prevent="ejecutarImportacion" class="space-y-4 text-xs">
+                    <div>
+                        <label class="block font-bold text-stone-800 mb-1">
+                            2. Seleccionar Archivo (.csv o Excel .xlsx / .xls) *
+                        </label>
+                        <input
+                            type="file"
+                            accept=".csv,.txt,.xls,.xlsx"
+                            @change="archivoImportar = $event.target.files?.[0] || null"
+                            required
+                            class="block w-full text-xs text-stone-700 border border-stone-300 rounded-xl p-2 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-100 file:text-emerald-800 hover:file:bg-emerald-200 cursor-pointer"
+                        />
+                    </div>
+
+                    <div class="flex justify-end gap-2 pt-3 border-t border-stone-100">
+                        <button type="button" @click="modalImportarVisible = false" class="px-4 py-2 border rounded-xl text-stone-600">
+                            Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            :disabled="!archivoImportar || importandoArchivo"
+                            class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl transition cursor-pointer"
+                        >
+                            {{ importandoArchivo ? 'Importando...' : '🚀 Importar Productos' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </AdminLayout>
 </template>
 
@@ -539,11 +689,40 @@ function eliminarCategoria(cat) {
 // Modal Productos
 const modalItemVisible = ref(false);
 const itemEnEdicion = ref(null);
+const vistaPreviaImagen = ref(null);
+const errorImagenProducto = ref('');
+
+// Modal Importar CSV / Excel
+const modalImportarVisible = ref(false);
+const archivoImportar = ref(null);
+const importandoArchivo = ref(false);
+
+function ejecutarImportacion() {
+    if (!archivoImportar.value) return;
+    importandoArchivo.value = true;
+    router.post('/admin/menu/importar', {
+        archivo: archivoImportar.value,
+    }, {
+        forceFormData: true,
+        preserveScroll: true,
+        onSuccess: () => {
+            modalImportarVisible.value = false;
+            archivoImportar.value = null;
+        },
+        onFinish: () => {
+            importandoArchivo.value = false;
+        },
+    });
+}
+
 const formItem = ref({
     categoria_id: '',
     nombre: '',
     descripcion: '',
     precio: 0,
+    imagen: null,
+    imagen_archivo: null,
+    quitar_imagen: false,
     impuesto_tipo: 'INC',
     impuesto_porcentaje: 8.0,
     es_combo: false,
@@ -556,6 +735,36 @@ const formItem = ref({
     orden: 0,
     combo_items: [],
 });
+
+function seleccionarArchivoImagen(event) {
+    errorImagenProducto.value = '';
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const permitidos = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!permitidos.includes(file.type)) {
+        errorImagenProducto.value = 'Formato no válido. Usa únicamente .jpg, .jpeg, .png o .webp.';
+        event.target.value = '';
+        return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+        errorImagenProducto.value = 'La imagen supera el tamaño máximo permitido de 5 MB.';
+        event.target.value = '';
+        return;
+    }
+
+    formItem.value.imagen_archivo = file;
+    formItem.value.quitar_imagen = false;
+    vistaPreviaImagen.value = URL.createObjectURL(file);
+}
+
+function limpiarImagenProducto() {
+    formItem.value.imagen_archivo = null;
+    formItem.value.quitar_imagen = true;
+    vistaPreviaImagen.value = null;
+    errorImagenProducto.value = '';
+}
 
 function seleccionarTarifaImpuesto(id) {
     if (!id) return;
@@ -620,10 +829,14 @@ function abrirModalItem(item = null) {
     comboProductoSeleccionadoId.value = '';
     comboCantidad.value = 1;
     busquedaProductoCombo.value = '';
+    vistaPreviaImagen.value = null;
+    errorImagenProducto.value = '';
 
     if (item) {
         formItem.value = {
             ...item,
+            imagen_archivo: null,
+            quitar_imagen: false,
             excluir_descuentos_categoria: Boolean(item.excluir_descuentos_categoria),
             combo_items: item.items_del_combo ? item.items_del_combo.map(c => ({
                 item_id: c.id,
@@ -637,6 +850,9 @@ function abrirModalItem(item = null) {
             nombre: '',
             descripcion: '',
             precio: 0,
+            imagen: null,
+            imagen_archivo: null,
+            quitar_imagen: false,
             impuesto_tipo: 'INC',
             impuesto_porcentaje: 8.0,
             es_combo: false,
@@ -662,12 +878,25 @@ function guardarItem() {
         })),
     };
 
+    const tieneArchivo = Boolean(payload.imagen_archivo);
+
     if (itemEnEdicion.value) {
-        router.put(`/admin/menu/items/${itemEnEdicion.value.id}`, payload, {
-            onSuccess: () => modalItemVisible.value = false,
-        });
+        if (tieneArchivo) {
+            router.post(`/admin/menu/items/${itemEnEdicion.value.id}`, {
+                ...payload,
+                _method: 'PUT',
+            }, {
+                forceFormData: true,
+                onSuccess: () => modalItemVisible.value = false,
+            });
+        } else {
+            router.put(`/admin/menu/items/${itemEnEdicion.value.id}`, payload, {
+                onSuccess: () => modalItemVisible.value = false,
+            });
+        }
     } else {
         router.post('/admin/menu/items', payload, {
+            forceFormData: tieneArchivo,
             onSuccess: () => modalItemVisible.value = false,
         });
     }

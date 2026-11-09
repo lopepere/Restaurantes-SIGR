@@ -41,10 +41,31 @@
                         <span>Nueva Comanda</span>
                     </Link>
 
-                    <button type="button" @click="logout" class="text-xs text-stone-400 hover:text-rose-400 transition cursor-pointer px-1 py-1">
+                    <button type="button" @click="logout" class="hidden sm:inline-block text-xs text-stone-400 hover:text-rose-400 transition cursor-pointer px-1 py-1">
                         Salir 🚪
                     </button>
+
+                    <!-- Botón Menú Desplegable Móvil -->
+                    <button
+                        type="button"
+                        @click="menuMovilAbierto = !menuMovilAbierto"
+                        class="sm:hidden p-1.5 rounded-lg bg-stone-800 border border-stone-700 text-stone-200 text-xs font-bold"
+                        aria-label="Abrir menú mesero"
+                    >
+                        {{ menuMovilAbierto ? '✕' : '☰' }}
+                    </button>
                 </div>
+            </div>
+
+            <!-- Menú Desplegable Móvil del Mesero -->
+            <div v-if="menuMovilAbierto" class="sm:hidden border-t border-stone-800 bg-stone-900 px-4 py-3 space-y-2 text-xs">
+                <Link href="/mesero" @click="menuMovilAbierto = false" class="block px-3 py-2 rounded-lg bg-stone-800 text-white font-semibold">📋 Panel de Operaciones</Link>
+                <Link href="/mesero/pedidos" @click="menuMovilAbierto = false" class="block px-3 py-2 rounded-lg bg-stone-800 text-white font-semibold">🛎️ Comandas Activas</Link>
+                <Link href="/mesero/pedidos/crear" @click="menuMovilAbierto = false" class="block px-3 py-2 rounded-lg bg-orange-600 text-white font-bold">➕ Registrar Nueva Comanda</Link>
+                <Link href="/" @click="menuMovilAbierto = false" class="block px-3 py-2 rounded-lg bg-stone-800 text-stone-200 font-semibold">🏠 Ir al Home / Menú</Link>
+                <button type="button" @click="logout" class="w-full text-left px-3 py-2 rounded-lg bg-rose-600 text-white font-bold">
+                    🚪 Cerrar Sesión
+                </button>
             </div>
         </header>
 
@@ -80,6 +101,7 @@ import { router, Link, usePage } from '@inertiajs/vue3';
 
 const page = usePage();
 const sucursalNombre = ref('Sede Centro');
+const menuMovilAbierto = ref(false);
 
 onMounted(() => {
     if (typeof window !== 'undefined' && page.props.auth?.user) {

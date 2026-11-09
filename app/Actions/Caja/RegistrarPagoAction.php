@@ -27,7 +27,8 @@ class RegistrarPagoAction
      *     metodo_pago: string,
      *     monto: float,
      *     monto_recibido?: float|null,
-     *     referencia_transaccion?: string|null
+     *     referencia_transaccion?: string|null,
+     *     nota_adicional?: string|null
      * }>  $pagosData
      * @return array{
      *     pedido: Pedido,
@@ -102,6 +103,7 @@ class RegistrarPagoAction
                     'monto_recibido' => $montoRecibido,
                     'cambio_devuelto' => $cambio,
                     'referencia_transaccion' => $pData['referencia_transaccion'] ?? null,
+                    'nota_adicional' => $pData['nota_adicional'] ?? null,
                 ]);
 
                 $pagosCreados[] = $pago;

@@ -126,6 +126,7 @@ Route::middleware(['auth', 'role:cajero|admin|super_admin'])->prefix('cajero')->
     Route::post('/cierre/{sesionCaja}', [CajaController::class, 'cierre'])->name('cierre');
     Route::post('/pedidos/{pedido}/items/{item}/anular', [CajaController::class, 'anularItem'])->name('items.anular');
     Route::get('/buscar-factura', [CajeroController::class, 'buscarFactura'])->name('buscar-factura');
+    Route::post('/comprobantes/{comprobante}/reenviar', [CajeroController::class, 'reenviarFactura'])->name('comprobantes.reenviar');
 });
 
 /*
@@ -179,11 +180,14 @@ Route::middleware(['auth', 'role:admin|super_admin'])->prefix('admin')->name('ad
 
     // Gestión del Menú y Combos (RF-MEN-01..11)
     Route::get('/menu', [MenuController::class, 'index'])->name('menu.index');
+    Route::get('/menu/plantilla', [MenuController::class, 'descargarPlantilla'])->name('menu.plantilla');
+    Route::post('/menu/importar', [MenuController::class, 'importarProductos'])->name('menu.importar');
     Route::post('/menu/categorias', [MenuController::class, 'storeCategoria'])->name('menu.categorias.store');
     Route::put('/menu/categorias/{categoria}', [MenuController::class, 'updateCategoria'])->name('menu.categorias.update');
     Route::delete('/menu/categorias/{categoria}', [MenuController::class, 'destroyCategoria'])->name('menu.categorias.destroy');
     Route::post('/menu/items', [MenuController::class, 'storeItem'])->name('menu.items.store');
     Route::put('/menu/items/{itemMenu}', [MenuController::class, 'updateItem'])->name('menu.items.update');
+    Route::post('/menu/items/{itemMenu}', [MenuController::class, 'updateItem'])->name('menu.items.update.post');
     Route::delete('/menu/items/{itemMenu}', [MenuController::class, 'destroyItem'])->name('menu.items.destroy');
     Route::post('/menu/items/{itemMenu}/disponibilidad', [MenuController::class, 'toggleDisponibilidad'])->name('menu.items.toggle');
     Route::post('/menu/copiar', [MenuController::class, 'copiarMenu'])->name('menu.copiar');
@@ -202,6 +206,8 @@ Route::middleware(['auth', 'role:admin|super_admin'])->prefix('admin')->name('ad
 
     // Operación: Compras y Proveedores (RF-COM-01..08)
     Route::get('/compras', [CompraController::class, 'index'])->name('compras.index');
+    Route::get('/compras/exportar/excel', [CompraController::class, 'exportarExcel'])->name('compras.exportar.excel');
+    Route::get('/compras/exportar/pdf', [CompraController::class, 'exportarPdf'])->name('compras.exportar.pdf');
     Route::post('/compras', [CompraController::class, 'store'])->name('compras.store');
     Route::post('/compras/{compra}/anular', [CompraController::class, 'anular'])->name('compras.anular');
     Route::post('/compras/{compra}/devolver', [CompraController::class, 'devolver'])->name('compras.devolver');
@@ -255,12 +261,29 @@ Route::middleware(['auth', 'role:super_admin'])->prefix('superadmin')->name('sup
     Route::put('/administradores/{administrador}', [AdministradorController::class, 'update'])->name('administradores.update');
     Route::delete('/administradores/{administrador}', [AdministradorController::class, 'destroy'])->name('administradores.destroy');
 
-    // Gestión de Sucursales (RF-CFG-01)
+    // Gestión de Sucursales, Cajas, Monitores de Cocina, Usuarios y Bases de Efectivo (RF-CFG-01)
     Route::get('/sucursales', [SucursalController::class, 'index'])->name('sucursales.index');
     Route::post('/sucursales', [SucursalController::class, 'store'])->name('sucursales.store');
     Route::put('/sucursales/{sucursal}', [SucursalController::class, 'update'])->name('sucursales.update');
+    Route::post('/sucursales/{sucursal}/estado', [SucursalController::class, 'toggleEstado'])->name('sucursales.estado');
     Route::post('/sucursales/{sucursal}/modalidad', [SucursalController::class, 'toggleModalidad'])->name('sucursales.modalidad');
     Route::delete('/sucursales/{sucursal}', [SucursalController::class, 'destroy'])->name('sucursales.destroy');
+
+    // Gestión de Cajas, Cocina, Usuarios y Bases por Sede Activa
+    Route::post('/sucursales/cajas', [SucursalController::class, 'storeCaja'])->name('sucursales.cajas.store');
+    Route::put('/sucursales/cajas/{caja}', [SucursalController::class, 'updateCaja'])->name('sucursales.cajas.update');
+    Route::post('/sucursales/estaciones-cocina', [SucursalController::class, 'storeEstacionCocina'])->name('sucursales.cocina.store');
+    Route::put('/sucursales/estaciones-cocina/{estacion}', [SucursalController::class, 'updateEstacionCocina'])->name('sucursales.cocina.update');
+    Route::post('/sucursales/usuarios-operativos', [SucursalController::class, 'storeUsuarioOperativo'])->name('sucursales.usuarios.store');
+    Route::put('/sucursales/usuarios-operativos/{usuario}', [SucursalController::class, 'updateUsuarioOperativo'])->name('sucursales.usuarios.update');
+    Route::post('/sucursales/bases-caja', [SucursalController::class, 'storeBaseCaja'])
+        ->withoutMiddleware('role:super_admin')
+        ->middleware('role:admin|super_admin')
+        ->name('sucursales.bases.store');
+    Route::put('/sucursales/bases-caja/{asignacion}', [SucursalController::class, 'updateBaseCaja'])
+        ->withoutMiddleware('role:super_admin')
+        ->middleware('role:admin|super_admin')
+        ->name('sucursales.bases.update');
 
     // Parámetros Globales e Impuestos (RF-CFG-02, 03)
     Route::get('/configuracion', [ConfiguracionController::class, 'index'])->name('configuracion.index');

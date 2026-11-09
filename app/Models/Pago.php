@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property float|string|null $monto_recibido
  * @property float|string|null $cambio_devuelto
  * @property string|null $referencia_transaccion
+ * @property string|null $nota_adicional
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property-read Pedido $pedido
@@ -38,6 +39,7 @@ class Pago extends Model
         'monto_recibido',
         'cambio_devuelto',
         'referencia_transaccion',
+        'nota_adicional',
     ];
 
     protected function casts(): array

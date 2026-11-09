@@ -40,4 +40,3 @@ class EnsureSingleSession
         return $next($request);
     }
 }
-

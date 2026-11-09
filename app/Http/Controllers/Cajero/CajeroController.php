@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Cajero;
 
+use App\Actions\Comprobantes\ReenviarComprobanteAction;
 use App\Enums\EstadoPedido;
 use App\Enums\EstadoSesionCaja;
 use App\Http\Controllers\Controller;
+use App\Models\AsignacionBaseCaja;
 use App\Models\Caja;
 use App\Models\Comprobante;
 use App\Models\Pago;
@@ -15,7 +17,9 @@ use App\Models\Sucursal;
 use App\Models\User;
 use App\Services\ConfiguracionService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,14 +33,32 @@ class CajeroController extends Controller
         /** @var User $user */
         $user = $request->user();
         $sucursalIds = $user->sucursalIds();
-        $sucursalId = (int) (session('sucursal_id') ?? ($sucursalIds[0] ?? 1));
+        $sucursalId = (int) (session('sucursal_id') ?? session('sucursal_activa_id') ?? ($sucursalIds[0] ?? 1));
 
         $sucursal = Sucursal::find($sucursalId) ?? Sucursal::first();
 
-        $cajas = Caja::where('sucursal_id', $sucursalId)->where('activa', true)->get();
+        $cajas = Caja::withoutGlobalScopes()
+            ->where('sucursal_id', $sucursalId)
+            ->where('activa', true)
+            ->with('cajero:id,nombre,email')
+            ->orderByRaw('CASE WHEN user_id = ? THEN 0 ELSE 1 END', [$user->id])
+            ->get();
+
+        $asignacionesHoy = [];
+        if (Schema::hasTable('asignaciones_base_caja')) {
+            $asignacionesHoy = AsignacionBaseCaja::withoutGlobalScopes()
+                ->where('sucursal_id', $sucursalId)
+                ->whereDate('fecha', now()->toDateString())
+                ->orderByDesc('id')
+                ->get()
+                ->keyBy('caja_id')
+                ->map(fn (AsignacionBaseCaja $a) => (float) $a->monto)
+                ->all();
+        }
 
         // Turno activo en esta caja/sucursal
-        $sesionActiva = SesionCaja::where('sucursal_id', $sucursalId)
+        $sesionActiva = SesionCaja::withoutGlobalScopes()
+            ->where('sucursal_id', $sucursalId)
             ->where('estado', EstadoSesionCaja::ABIERTA)
             ->with(['caja', 'user'])
             ->orderByDesc('id')
@@ -79,6 +101,8 @@ class CajeroController extends Controller
                     'metodo' => $p->metodo_pago->etiqueta(),
                     'monto' => (float) $p->monto,
                     'cambio' => (float) $p->cambio_devuelto,
+                    'referencia_transaccion' => $p->referencia_transaccion,
+                    'nota_adicional' => $p->nota_adicional,
                 ]);
         }
 
@@ -111,11 +135,15 @@ class CajeroController extends Controller
                 ]),
             ]);
 
-        $baseConfigurada = (float) ConfiguracionService::obtener('caja.base_efectivo_inicial', $sucursalId, 100000.0);
+        $primeraCajaId = $cajas->first()?->id;
+        $baseConfigurada = ($primeraCajaId && isset($asignacionesHoy[$primeraCajaId]))
+            ? (float) $asignacionesHoy[$primeraCajaId]
+            : (float) ConfiguracionService::obtener('caja.base_efectivo_inicial', $sucursalId, 100000.0);
 
         return Inertia::render('Cajero/Index', [
             'sucursal' => $sucursal,
             'cajas' => $cajas,
+            'asignacionesHoy' => $asignacionesHoy,
             'sesionActiva' => $resumenSesion,
             'pagosSesion' => $pagosSesion,
             'pedidosPorCobrar' => $pedidosPorCobrar,
@@ -135,9 +163,10 @@ class CajeroController extends Controller
 
         /** @var User $user */
         $user = $request->user();
-        $sucursalId = (int) (session('sucursal_id') ?? ($user->sucursalIds()[0] ?? 1));
+        $sucursalId = (int) (session('sucursal_id') ?? session('sucursal_activa_id') ?? ($user->sucursalIds()[0] ?? 1));
 
-        $facturas = Comprobante::where('sucursal_id', $sucursalId)
+        $facturas = Comprobante::withoutGlobalScopes()
+            ->where('sucursal_id', $sucursalId)
             ->where(function ($q) use ($term) {
                 $q->where('numero', 'like', "%{$term}%")
                     ->orWhere('cliente_nombre', 'like', "%{$term}%")
@@ -146,9 +175,24 @@ class CajeroController extends Controller
             })
             ->orderByDesc('id')
             ->limit(10)
-            ->get(['id', 'numero', 'cliente_nombre', 'total', 'metodo_pago', 'estado', 'created_at']);
+            ->get(['id', 'numero', 'codigo_verificacion', 'cliente_nombre', 'cliente_email', 'total', 'metodo_pago', 'estado', 'created_at']);
 
         return response()->json($facturas);
     }
-}
 
+    /**
+     * Reenvía comprobante desde la consola de cajero.
+     */
+    public function reenviarFactura(Request $request, Comprobante $comprobante, ReenviarComprobanteAction $reenviarAction): RedirectResponse
+    {
+        $correos = $request->input('correos');
+        if (empty($correos)) {
+            $correoDestino = $comprobante->cliente_email ?: 'cliente@sigr.test';
+            $correos = [$correoDestino];
+        }
+
+        $reenviarAction->handle($comprobante, (array) $correos, $request->input('mensaje'), $request->user());
+
+        return back()->with('success', "Comprobante {$comprobante->numero} reenviado exitosamente.");
+    }
+}

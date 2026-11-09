@@ -34,11 +34,34 @@
                     <button
                         type="button"
                         @click="logout"
-                        class="text-xs font-semibold text-stone-500 hover:text-rose-600 px-2 py-1 rounded-md transition cursor-pointer"
+                        class="hidden sm:inline-block text-xs font-semibold text-stone-500 hover:text-rose-600 px-2 py-1 rounded-md transition cursor-pointer"
                     >
                         Cerrar sesión 🚪
                     </button>
+
+                    <!-- Botón Menú Desplegable Móvil -->
+                    <button
+                        type="button"
+                        @click="menuMovilAbierto = !menuMovilAbierto"
+                        class="md:hidden p-2 rounded-xl border border-stone-200 bg-stone-50 text-stone-700 hover:bg-stone-100 transition cursor-pointer"
+                        aria-label="Abrir menú de cliente"
+                    >
+                        <span>{{ menuMovilAbierto ? '✕' : '☰' }}</span>
+                    </button>
                 </div>
+            </div>
+
+            <!-- Menú Desplegable Móvil del Cliente -->
+            <div v-if="menuMovilAbierto" class="md:hidden border-t border-stone-200 bg-white px-4 py-3 space-y-1.5 text-sm shadow-lg">
+                <Link href="/cliente" @click="menuMovilAbierto = false" class="block px-3 py-2 rounded-xl font-semibold text-stone-800 hover:bg-orange-50">🏠 Inicio Cliente</Link>
+                <Link href="/cliente/pedidos" @click="menuMovilAbierto = false" class="block px-3 py-2 rounded-xl font-semibold text-stone-700 hover:bg-orange-50">🛎️ Mis Pedidos</Link>
+                <Link href="/cliente/comprobantes" @click="menuMovilAbierto = false" class="block px-3 py-2 rounded-xl font-semibold text-stone-700 hover:bg-orange-50">🧾 Mis Comprobantes</Link>
+                <Link href="/cliente/reservas" @click="menuMovilAbierto = false" class="block px-3 py-2 rounded-xl font-semibold text-stone-700 hover:bg-orange-50">📅 Mis Reservas</Link>
+                <Link href="/cliente/perfil" @click="menuMovilAbierto = false" class="block px-3 py-2 rounded-xl font-semibold text-stone-700 hover:bg-orange-50">👤 Mi Perfil</Link>
+                <Link href="/" @click="menuMovilAbierto = false" class="block px-3 py-2 rounded-xl font-semibold text-orange-600 hover:bg-orange-50">🍽️ Ver Carta Pública</Link>
+                <button type="button" @click="logout" class="w-full text-left px-3 py-2 rounded-xl font-bold text-rose-600 hover:bg-rose-50">
+                    🚪 Cerrar Sesión
+                </button>
             </div>
         </header>
 
@@ -56,10 +79,11 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { usePage, router, Link } from '@inertiajs/vue3';
 
 const page = usePage();
+const menuMovilAbierto = ref(false);
 
 onMounted(() => {
     if (typeof window !== 'undefined' && page.props.auth?.user) {

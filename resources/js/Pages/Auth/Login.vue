@@ -22,7 +22,7 @@
                                 class="mt-1 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm shadow-xs focus:border-orange-500 focus:ring-orange-500"
                                 placeholder="tu@correo.com"
                             />
-                            <p v-if="form.errors.email" class="text-xs text-rose-600 mt-1">{{ form.errors.email }}</p>
+                            <p v-if="form.errors.email" class="text-xs text-rose-600 mt-1 font-medium">{{ form.errors.email }}</p>
                         </div>
 
                         <div>
@@ -34,6 +34,21 @@
                                 class="mt-1 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm shadow-xs focus:border-orange-500 focus:ring-orange-500"
                             />
                             <p v-if="form.errors.password" class="text-xs text-rose-600 mt-1">{{ form.errors.password }}</p>
+                        </div>
+
+                        <div
+                            v-if="esErrorSesionActiva"
+                            class="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 space-y-2"
+                        >
+                            <p class="font-semibold">¿Cerraste el navegador sin salir y tu cuenta quedó bloqueada?</p>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    v-model="form.forzar_cierre_previa"
+                                    type="checkbox"
+                                    class="rounded-sm border-amber-400 text-orange-600 focus:ring-orange-500"
+                                />
+                                <span>Cerrar la sesión anterior e iniciar sesión aquí</span>
+                            </label>
                         </div>
                     </div>
 
@@ -67,18 +82,21 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
-import { useForm, usePage, router, Link } from '@inertiajs/vue3';
+import { computed, onMounted } from 'vue';
+import { useForm, usePage, Link } from '@inertiajs/vue3';
 import PublicLayout from '@/Layouts/PublicLayout.vue';
 
 const page = usePage();
 
-// Si ya existe sesión activa (verificada por sessionStorage o props), redirigir de inmediato sin renderizar login
+// Si el servidor renderiza /login sin usuario autenticado, limpiar cualquier marca residual de sessionStorage
+// para evitar bucles infinitos de redirección tras cerrar sesión en cualquier rol (Cajero, Cocina, etc.).
 if (typeof window !== 'undefined') {
-    const yaAutenticado = sessionStorage.getItem('sigr_auth_active') === '1' || !!page.props.auth?.user;
-    if (yaAutenticado) {
-        const destino = sessionStorage.getItem('sigr_dashboard') || page.props.auth?.user?.dashboard_url || '/';
+    if (page.props.auth?.user) {
+        const destino = page.props.auth.user.dashboard_url || '/';
         window.location.replace(destino);
+    } else {
+        sessionStorage.removeItem('sigr_auth_active');
+        sessionStorage.removeItem('sigr_dashboard');
     }
 }
 
@@ -86,20 +104,26 @@ const form = useForm({
     email: '',
     password: '',
     remember: false,
+    forzar_cierre_previa: false,
 });
 
+const esErrorSesionActiva = computed(() =>
+    Boolean(form.errors.email && form.errors.email.toLowerCase().includes('sesión activa')),
+);
+
 onMounted(() => {
-    // Si ya existe sesión activa, no permitir ver login ni con botón de retroceso
-    if (page.props.auth?.user || sessionStorage.getItem('sigr_auth_active') === '1') {
-        const destino = sessionStorage.getItem('sigr_dashboard') || page.props.auth?.user?.dashboard_url || '/';
+    if (page.props.auth?.user) {
+        const destino = page.props.auth.user.dashboard_url || '/';
         window.location.replace(destino);
+    } else {
+        sessionStorage.removeItem('sigr_auth_active');
+        sessionStorage.removeItem('sigr_dashboard');
     }
 
-    // Manejar caché de historial del navegador (bfcache)
+    // Manejar caché de historial del navegador (bfcache) al presionar Atrás
     window.addEventListener('pageshow', (event) => {
-        if ((event.persisted && page.props.auth?.user) || sessionStorage.getItem('sigr_auth_active') === '1') {
-            const destino = sessionStorage.getItem('sigr_dashboard') || page.props.auth?.user?.dashboard_url || '/';
-            window.location.replace(destino);
+        if (event.persisted) {
+            window.location.reload();
         }
     });
 });
@@ -108,9 +132,9 @@ function submit() {
     form.post('/login', {
         replace: true,
         onSuccess: (pageResp) => {
-            if (typeof window !== 'undefined') {
+            if (typeof window !== 'undefined' && pageResp?.props?.auth?.user) {
                 sessionStorage.setItem('sigr_auth_active', '1');
-                if (pageResp?.props?.auth?.user?.dashboard_url) {
+                if (pageResp.props.auth.user.dashboard_url) {
                     sessionStorage.setItem('sigr_dashboard', pageResp.props.auth.user.dashboard_url);
                 }
             }

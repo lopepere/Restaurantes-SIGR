@@ -260,7 +260,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <a
-                                :href="`/admin/comprobantes/${fac.id}/imprimir`"
+                                :href="`/comprobante/${fac.codigo_verificacion}/tirilla`"
                                 target="_blank"
                                 class="px-3 py-1.5 rounded-xl bg-white border border-stone-300 font-bold hover:bg-stone-50 text-stone-700 shadow-xs transition"
                             >
@@ -466,6 +466,37 @@
                         </div>
                     </div>
 
+                    <!-- Si es Tarjeta o Transferencia: Número de transacción (obligatorio) y Nota adicional (opcional) -->
+                    <div v-else class="p-3 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
+                        <div>
+                            <label class="block font-bold text-stone-700 mb-1">
+                                Número de la Transacción / Referencia <span class="text-rose-600">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                v-model="referenciaTransaccionInput"
+                                placeholder="Ej: 849201, APROB-1029, Nequi-99381..."
+                                class="w-full rounded-xl border border-stone-300 p-2.5 text-xs font-mono font-bold text-stone-900"
+                                required
+                            />
+                            <p v-if="errorReferenciaPago" class="text-[11px] text-rose-600 font-semibold mt-1">
+                                {{ errorReferenciaPago }}
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="block font-bold text-stone-700 mb-1">
+                                Nota Adicional <span class="text-stone-400 font-normal">(Opcional)</span>
+                            </label>
+                            <input
+                                type="text"
+                                v-model="notaAdicionalInput"
+                                placeholder="Ej: Datáfono Redeban, cuenta ahorros Bancolombia..."
+                                class="w-full rounded-xl border border-stone-300 p-2 text-xs text-stone-800"
+                            />
+                        </div>
+                    </div>
+
                     <!-- Resumen de Totales -->
                     <div class="p-3 bg-orange-50/60 rounded-2xl border border-orange-200 space-y-1 font-semibold text-xs">
                         <div class="flex justify-between">
@@ -552,6 +583,7 @@ const esAdmin = computed(() => {
 const props = defineProps({
     sucursal: Object,
     cajas: Array,
+    asignacionesHoy: { type: Object, default: () => ({}) },
     sesionActiva: Object,
     pagosSesion: Array,
     pedidosPorCobrar: Array,
@@ -576,13 +608,16 @@ const formApertura = useForm({
 });
 
 function abrirModalApertura() {
-    formApertura.caja_id = props.cajas[0]?.id || null;
-    formApertura.monto_apertura = props.base_efectivo_inicial || 100000;
+    const primeraCajaId = props.cajas[0]?.id || null;
+    formApertura.caja_id = primeraCajaId;
+    formApertura.monto_apertura = (primeraCajaId && props.asignacionesHoy?.[primeraCajaId] !== undefined)
+        ? props.asignacionesHoy[primeraCajaId]
+        : (props.base_efectivo_inicial || 100000);
     modalAperturaAbierto.value = true;
 }
 
 function ejecutarApertura() {
-    formApertura.post('/admin/caja/apertura', {
+    formApertura.post('/cajero/apertura', {
         preserveScroll: true,
         onSuccess: () => { modalAperturaAbierto.value = false; },
     });
@@ -603,7 +638,7 @@ function abrirModalCierre() {
 
 function ejecutarCierre() {
     if (!props.sesionActiva) return;
-    formCierre.post(`/admin/caja/cierre/${props.sesionActiva.id}`, {
+    formCierre.post(`/cajero/cierre/${props.sesionActiva.id}`, {
         preserveScroll: true,
         onSuccess: () => { modalCierreAbierto.value = false; },
     });
@@ -615,6 +650,9 @@ const pedidoSeleccionado = ref(null);
 const metodoSeleccionado = ref('efectivo');
 const propinaPorcentaje = ref(0);
 const montoRecibidoInput = ref(0);
+const referenciaTransaccionInput = ref('');
+const notaAdicionalInput = ref('');
+const errorReferenciaPago = ref('');
 
 const formPago = useForm({
     propina_valor: 0,
@@ -626,6 +664,9 @@ function abrirModalPago(pedido) {
     propinaPorcentaje.value = 0;
     formPago.propina_valor = 0;
     metodoSeleccionado.value = 'efectivo';
+    referenciaTransaccionInput.value = '';
+    notaAdicionalInput.value = '';
+    errorReferenciaPago.value = '';
     const totalConsumo = pedido.subtotal + pedido.impuestos;
     montoRecibidoInput.value = totalConsumo;
     modalPagoAbierto.value = true;
@@ -646,16 +687,24 @@ function calcularTotalCobro() {
 function ejecutarCobro() {
     if (!pedidoSeleccionado.value) return;
 
+    if (metodoSeleccionado.value !== 'efectivo' && !referenciaTransaccionInput.value.trim()) {
+        errorReferenciaPago.value = 'Debes ingresar el número de la transacción para pagos con tarjeta o transferencia.';
+        return;
+    }
+    errorReferenciaPago.value = '';
+
     const total = calcularTotalCobro();
     formPago.pagos = [
         {
             metodo_pago: metodoSeleccionado.value,
             monto: total,
             monto_recibido: metodoSeleccionado.value === 'efectivo' ? montoRecibidoInput.value : total,
+            referencia_transaccion: metodoSeleccionado.value !== 'efectivo' ? referenciaTransaccionInput.value.trim() : null,
+            nota_adicional: metodoSeleccionado.value !== 'efectivo' && notaAdicionalInput.value.trim() ? notaAdicionalInput.value.trim() : null,
         },
     ];
 
-    formPago.post(`/admin/caja/pagos/${pedidoSeleccionado.value.id}`, {
+    formPago.post(`/cajero/pagos/${pedidoSeleccionado.value.id}`, {
         preserveScroll: true,
         onSuccess: () => { modalPagoAbierto.value = false; },
     });
@@ -678,7 +727,7 @@ function confirmarAnulacionItem() {
     if (!pedidoDeItemParaAnular.value || !itemParaAnular.value || !motivoAnulacionItem.value) return;
 
     router.post(
-        `/admin/caja/pedidos/${pedidoDeItemParaAnular.value.id}/items/${itemParaAnular.value.id}/anular`,
+        `/cajero/pedidos/${pedidoDeItemParaAnular.value.id}/items/${itemParaAnular.value.id}/anular`,
         { motivo: motivoAnulacionItem.value },
         {
             preserveScroll: true,
@@ -707,13 +756,16 @@ async function buscarFacturas() {
 }
 
 function reenviarFactura(comprobanteId) {
-    router.post(`/admin/comprobantes/${comprobanteId}/reenviar`, {}, {
+    router.post(`/cajero/comprobantes/${comprobanteId}/reenviar`, {}, {
         preserveScroll: true,
-        onSuccess: () => alert('Comprobante encolado para reenvío por correo.'),
     });
 }
 
 function logout() {
+    if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('sigr_auth_active');
+        sessionStorage.removeItem('sigr_dashboard');
+    }
     router.post('/logout');
 }
 </script>

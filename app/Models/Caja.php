@@ -17,6 +17,7 @@ class Caja extends Model
 
     protected $fillable = [
         'sucursal_id',
+        'user_id',
         'nombre',
         'activa',
     ];
@@ -37,10 +38,26 @@ class Caja extends Model
     }
 
     /**
+     * @return BelongsTo<User, $this>
+     */
+    public function cajero(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
      * @return HasMany<SesionCaja, $this>
      */
     public function sesiones(): HasMany
     {
         return $this->hasMany(SesionCaja::class);
+    }
+
+    /**
+     * @return HasMany<AsignacionBaseCaja, $this>
+     */
+    public function asignacionesBase(): HasMany
+    {
+        return $this->hasMany(AsignacionBaseCaja::class);
     }
 }

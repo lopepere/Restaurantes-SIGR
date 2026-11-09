@@ -48,9 +48,9 @@
                 <div class="px-3 pb-1 text-[11px] font-bold text-stone-500 uppercase tracking-wider">
                     Administración Maestra
                 </div>
-                <Link href="/superadmin" class="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-stone-900 text-stone-300 hover:text-white transition">
+                <Link href="/superadmin/sucursales" class="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-stone-900 text-stone-300 hover:text-white transition">
                     <span>🏢</span>
-                    <span>Sucursales</span>
+                    <span>Sucursales, Cajas y Cocina</span>
                 </Link>
                 <Link href="/superadmin/administradores" class="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-stone-900 text-stone-300 hover:text-white transition">
                     <span>👥</span>
@@ -156,19 +156,78 @@
 
         <!-- Contenido principal -->
         <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
-            <!-- Cabecera móvil -->
-            <header class="bg-white border-b border-stone-200 h-16 flex items-center justify-between px-6 lg:hidden">
-                <Link href="/superadmin" class="flex items-center space-x-2">
-                    <span class="text-xl">👑</span>
-                    <span class="font-bold text-stone-900">SIGR Super Admin</span>
-                </Link>
-                <div class="flex items-center space-x-3">
-                    <Link href="/" class="text-xs font-semibold text-stone-600 hover:text-stone-900">
-                        🏠 Menú
+            <!-- Cabecera móvil con menú desplegable completo -->
+            <header class="bg-stone-950 text-white border-b border-stone-800 lg:hidden sticky top-0 z-40">
+                <div class="h-16 flex items-center justify-between px-4 sm:px-6">
+                    <Link href="/superadmin" class="flex items-center space-x-2">
+                        <span class="text-xl">👑</span>
+                        <span class="font-bold text-white text-sm">SIGR Super Admin</span>
                     </Link>
-                    <button type="button" @click="logout" class="text-xs font-semibold text-rose-600 hover:text-rose-800 cursor-pointer">
-                        Salir 🚪
-                    </button>
+                    <div class="flex items-center space-x-2">
+                        <Link href="/" class="px-2.5 py-1.5 rounded-lg bg-stone-800 text-xs font-semibold text-stone-200">
+                            🏠 Menú
+                        </Link>
+                        <button
+                            type="button"
+                            @click="menuMovilAbierto = !menuMovilAbierto"
+                            class="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                            aria-label="Abrir menú SuperAdmin"
+                        >
+                            <span>{{ menuMovilAbierto ? '✕' : '☰' }}</span>
+                            <span>Menú</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Menú Desplegable Móvil SuperAdmin -->
+                <div v-if="menuMovilAbierto" class="border-t border-stone-800 bg-stone-950 px-4 py-4 space-y-3 max-h-[82vh] overflow-y-auto shadow-2xl">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-stone-400 mb-1">Sucursal Activa (Persistente)</label>
+                        <select
+                            :value="$page.props.sucursal_activa_id || 'todas'"
+                            @change="cambiarSucursal($event.target.value)"
+                            class="w-full bg-stone-900 border border-stone-700 text-white text-xs rounded-lg px-2.5 py-2"
+                        >
+                            <option value="todas">-- Todas las sedes (Global) --</option>
+                            <option v-for="s in $page.props.sucursales_usuario" :key="s.id" :value="s.id">
+                                🏢 {{ s.nombre }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-amber-400">Administración Maestra</div>
+                    <div class="grid grid-cols-2 gap-1.5 text-xs">
+                        <Link href="/superadmin/sucursales" @click="menuMovilAbierto = false" class="px-3 py-2 rounded-lg bg-stone-900 text-stone-200 font-medium">🏢 Sucursales y Cajas</Link>
+                        <Link href="/superadmin/administradores" @click="menuMovilAbierto = false" class="px-3 py-2 rounded-lg bg-stone-900 text-stone-200 font-medium">👥 Administradores</Link>
+                        <Link href="/superadmin/impuestos" @click="menuMovilAbierto = false" class="px-3 py-2 rounded-lg bg-stone-900 text-stone-200 font-medium">⚖️ Impuestos</Link>
+                        <Link href="/superadmin/configuracion" @click="menuMovilAbierto = false" class="px-3 py-2 rounded-lg bg-stone-900 text-stone-200 font-medium">⚙️ Parámetros</Link>
+                        <Link href="/superadmin/plantillas" @click="menuMovilAbierto = false" class="px-3 py-2 rounded-lg bg-stone-900 text-stone-200 font-medium">✉️ Plantillas Correo</Link>
+                        <Link href="/superadmin/informes" @click="menuMovilAbierto = false" class="px-3 py-2 rounded-lg bg-stone-900 text-stone-200 font-medium">📊 Informes</Link>
+                    </div>
+
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-amber-400 pt-1">Módulos de Operación de Sede</div>
+                    <div class="grid grid-cols-2 gap-1.5 text-xs">
+                        <Link href="/admin" @click="menuMovilAbierto = false" class="px-3 py-2 rounded-lg bg-stone-900/80 text-stone-300">📊 Tablero General</Link>
+                        <Link href="/admin/pedidos" @click="menuMovilAbierto = false" class="px-3 py-2 rounded-lg bg-stone-900/80 text-stone-300">🛎️ Monitor Pedidos</Link>
+                        <Link href="/admin/menu" @click="menuMovilAbierto = false" class="px-3 py-2 rounded-lg bg-stone-900/80 text-stone-300">🍔 Menú y Combos</Link>
+                        <Link href="/admin/promociones" @click="menuMovilAbierto = false" class="px-3 py-2 rounded-lg bg-stone-900/80 text-stone-300">🏷️ Promociones</Link>
+                        <Link href="/admin/reservas" @click="menuMovilAbierto = false" class="px-3 py-2 rounded-lg bg-stone-900/80 text-stone-300">📅 Reservas</Link>
+                        <Link href="/admin/espacios" @click="menuMovilAbierto = false" class="px-3 py-2 rounded-lg bg-stone-900/80 text-stone-300">🪑 Mapa de Mesas</Link>
+                        <Link href="/admin/caja" @click="menuMovilAbierto = false" class="px-3 py-2 rounded-lg bg-stone-900/80 text-stone-300">💵 Caja y Turnos</Link>
+                        <Link href="/admin/comprobantes" @click="menuMovilAbierto = false" class="px-3 py-2 rounded-lg bg-stone-900/80 text-stone-300">🧾 Comprobantes</Link>
+                        <Link href="/admin/compras" @click="menuMovilAbierto = false" class="px-3 py-2 rounded-lg bg-stone-900/80 text-stone-300">🛒 Compras</Link>
+                        <Link href="/admin/inventario" @click="menuMovilAbierto = false" class="px-3 py-2 rounded-lg bg-stone-900/80 text-stone-300">📦 Inventario</Link>
+                        <Link href="/admin/meseros" @click="menuMovilAbierto = false" class="px-3 py-2 rounded-lg bg-stone-900/80 text-stone-300">🧑‍🍳 Meseros</Link>
+                        <Link href="/admin/bitacora" @click="menuMovilAbierto = false" class="px-3 py-2 rounded-lg bg-stone-900/80 text-stone-300">🛡️ Bitácora</Link>
+                        <Link href="/admin/papelera" @click="menuMovilAbierto = false" class="px-3 py-2 rounded-lg bg-stone-900/80 text-stone-300">🗑️ Papelera</Link>
+                    </div>
+
+                    <div class="pt-2 border-t border-stone-800 flex items-center justify-between text-xs">
+                        <span class="text-stone-400">{{ $page.props.auth?.user?.name }}</span>
+                        <button type="button" @click="logout" class="px-3 py-1.5 rounded-lg bg-rose-600 text-white font-bold">
+                            Salir 🚪
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -186,6 +245,7 @@ import { router, Link, usePage } from '@inertiajs/vue3';
 const page = usePage();
 const sucursalSeleccionada = ref('todas');
 const seccionAdminAbierta = ref(false);
+const menuMovilAbierto = ref(false);
 
 onMounted(() => {
     if (typeof window !== 'undefined' && page.props.auth?.user) {

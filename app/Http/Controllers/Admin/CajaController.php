@@ -8,6 +8,7 @@ use App\Actions\Caja\RegistrarPagoAction;
 use App\Enums\EstadoPedido;
 use App\Enums\EstadoSesionCaja;
 use App\Http\Controllers\Controller;
+use App\Models\AsignacionBaseCaja;
 use App\Models\Caja;
 use App\Models\Comprobante;
 use App\Models\DevolucionCompra;
@@ -20,6 +21,8 @@ use App\Services\ConfiguracionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -50,10 +53,27 @@ class CajaController extends Controller
             abort(403, 'No tienes autorización para acceder a las cajas de esta sucursal.');
         }
 
-        $cajas = Caja::where('sucursal_id', $sucursalId)->where('activa', true)->get();
+        $cajas = Caja::withoutGlobalScopes()
+            ->where('sucursal_id', $sucursalId)
+            ->where('activa', true)
+            ->with('cajero:id,nombre,email')
+            ->get();
+
+        $asignacionesHoy = [];
+        if (Schema::hasTable('asignaciones_base_caja')) {
+            $asignacionesHoy = AsignacionBaseCaja::withoutGlobalScopes()
+                ->where('sucursal_id', $sucursalId)
+                ->whereDate('fecha', now()->toDateString())
+                ->orderByDesc('id')
+                ->get()
+                ->keyBy('caja_id')
+                ->map(fn (AsignacionBaseCaja $a) => (float) $a->monto)
+                ->all();
+        }
 
         // Sesión activa actual en la sucursal
-        $sesionActiva = SesionCaja::where('sucursal_id', $sucursalId)
+        $sesionActiva = SesionCaja::withoutGlobalScopes()
+            ->where('sucursal_id', $sucursalId)
             ->where('estado', EstadoSesionCaja::ABIERTA)
             ->with(['caja', 'user'])
             ->orderByDesc('id')
@@ -95,6 +115,8 @@ class CajaController extends Controller
                     'metodo' => $p->metodo_pago->etiqueta(),
                     'monto' => (float) $p->monto,
                     'cambio' => (float) $p->cambio_devuelto,
+                    'referencia_transaccion' => $p->referencia_transaccion,
+                    'nota_adicional' => $p->nota_adicional,
                 ]);
         }
 
@@ -178,10 +200,14 @@ class CajaController extends Controller
                 'diferencia' => (float) $s->diferencia,
             ]);
 
-        $baseConfigurada = (float) ConfiguracionService::obtener('caja.base_efectivo_inicial', $sucursalId, 100000.0);
+        $primeraCajaId = $cajas->first()?->id;
+        $baseConfigurada = ($primeraCajaId && isset($asignacionesHoy[$primeraCajaId]))
+            ? (float) $asignacionesHoy[$primeraCajaId]
+            : (float) ConfiguracionService::obtener('caja.base_efectivo_inicial', $sucursalId, 100000.0);
 
         return Inertia::render('Admin/Caja/Index', [
             'cajas' => $cajas,
+            'asignacionesHoy' => $asignacionesHoy,
             'sesionActiva' => $resumenSesion,
             'pagosSesion' => $pagosSesion,
             'pedidosPorCobrar' => $pedidosPorCobrar,
@@ -222,7 +248,16 @@ class CajaController extends Controller
             'pagos.*.monto' => ['required', 'numeric', 'min:0.01'],
             'pagos.*.monto_recibido' => ['nullable', 'numeric', 'min:0'],
             'pagos.*.referencia_transaccion' => ['nullable', 'string', 'max:100'],
+            'pagos.*.nota_adicional' => ['nullable', 'string', 'max:500'],
         ]);
+
+        foreach ($validated['pagos'] as $idx => $pagoItem) {
+            if (($pagoItem['metodo_pago'] ?? 'efectivo') !== 'efectivo' && empty(trim((string) ($pagoItem['referencia_transaccion'] ?? '')))) {
+                throw ValidationException::withMessages([
+                    "pagos.{$idx}.referencia_transaccion" => ['El número de la transacción es obligatorio para pagos con tarjeta o transferencia.'],
+                ]);
+            }
+        }
 
         $resultado = $pagoAction->handle(
             $pedido,
@@ -283,12 +318,46 @@ class CajaController extends Controller
         $validated = $request->validate([
             'base_efectivo_inicial' => ['required', 'numeric', 'min:0'],
             'sucursal_id' => ['nullable', 'exists:sucursales,id'],
+            'caja_id' => ['nullable', 'exists:cajas,id'],
+            'fecha' => ['nullable', 'date'],
+            'observaciones' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $sucursalId = $validated['sucursal_id'] ?? session('sucursal_id');
+        $sucursalId = (int) ($validated['sucursal_id'] ?? session('sucursal_id', 1));
         ConfiguracionService::set('caja.base_efectivo_inicial', (float) $validated['base_efectivo_inicial'], $sucursalId);
 
-        return back()->with('success', 'Base inicial en efectivo de caja actualizada correctamente.');
+        if (! empty($validated['caja_id']) && Schema::hasTable('asignaciones_base_caja')) {
+            $caja = Caja::withoutGlobalScopes()->find($validated['caja_id']);
+            if ($caja) {
+                $fecha = $validated['fecha'] ?? now()->toDateString();
+                $existente = AsignacionBaseCaja::withoutGlobalScopes()
+                    ->where('sucursal_id', $caja->sucursal_id)
+                    ->where('caja_id', $caja->id)
+                    ->whereDate('fecha', $fecha)
+                    ->first();
+
+                if ($existente) {
+                    $existente->update([
+                        'monto' => (float) $validated['base_efectivo_inicial'],
+                        'user_id' => $caja->user_id,
+                        'editado_por_id' => $request->user()?->id,
+                        'observaciones' => $validated['observaciones'] ?? $existente->observaciones,
+                    ]);
+                } else {
+                    AsignacionBaseCaja::withoutGlobalScopes()->create([
+                        'sucursal_id' => $caja->sucursal_id,
+                        'caja_id' => $caja->id,
+                        'user_id' => $caja->user_id,
+                        'asignado_por_id' => $request->user()?->id,
+                        'fecha' => $fecha,
+                        'monto' => (float) $validated['base_efectivo_inicial'],
+                        'observaciones' => $validated['observaciones'] ?? null,
+                    ]);
+                }
+            }
+        }
+
+        return back()->with('success', 'Base inicial en efectivo de caja asignada y registrada correctamente.');
     }
 
     /**

@@ -65,7 +65,41 @@
                             Registrarse
                         </Link>
                     </template>
+
+                    <!-- Botón Menú Desplegable Móvil -->
+                    <button
+                        type="button"
+                        @click="menuMovilAbierto = !menuMovilAbierto"
+                        class="md:hidden p-2 rounded-xl border border-stone-200 bg-stone-50 text-stone-700 hover:bg-stone-100 transition cursor-pointer"
+                        aria-label="Abrir menú de navegación"
+                    >
+                        <span v-if="!menuMovilAbierto" class="text-base font-bold">☰</span>
+                        <span v-else class="text-base font-bold">✕</span>
+                    </button>
                 </div>
+            </div>
+
+            <!-- Menú Desplegable Responsivo (Vistas pequeñas) -->
+            <div v-if="menuMovilAbierto" class="md:hidden border-t border-stone-200 bg-white px-4 py-3 space-y-2 text-sm shadow-lg">
+                <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-stone-100 text-xs">
+                    <span class="text-stone-500 font-medium">Sucursal activa:</span>
+                    <span class="font-bold text-stone-800 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        {{ sucursalNombre || 'Sede Centro' }}
+                    </span>
+                </div>
+                <Link href="/" @click="menuMovilAbierto = false" class="block px-3 py-2 rounded-xl font-semibold text-stone-700 hover:bg-orange-50 hover:text-orange-600">
+                    🏠 Inicio
+                </Link>
+                <a href="/#menu" @click="menuMovilAbierto = false" class="block px-3 py-2 rounded-xl font-semibold text-stone-700 hover:bg-orange-50 hover:text-orange-600">
+                    🍽️ Menú Digital
+                </a>
+                <a href="/#promociones" @click="menuMovilAbierto = false" class="block px-3 py-2 rounded-xl font-semibold text-stone-700 hover:bg-orange-50 hover:text-orange-600">
+                    🏷️ Promociones
+                </a>
+                <Link href="/reservar" @click="menuMovilAbierto = false" class="block px-3 py-2 rounded-xl font-semibold text-stone-700 hover:bg-orange-50 hover:text-orange-600">
+                    📅 Reservar Mesa
+                </Link>
             </div>
         </header>
 
@@ -153,9 +187,11 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { usePage, router, Link } from '@inertiajs/vue3';
 import RestaurantBellIcon from '@/Components/UI/RestaurantBellIcon.vue';
+
+const menuMovilAbierto = ref(false);
 
 const props = defineProps({
     itemsCount: {

@@ -1,31 +1,47 @@
 <template>
     <AdminLayout>
-        <div class="p-6 space-y-6">
+        <div class="p-4 sm:p-6 space-y-6">
             <!-- Encabezado -->
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div>
                     <h1 class="text-2xl font-extrabold tracking-tight text-stone-900 flex items-center space-x-2">
                         <span>🛒</span>
-                        <span>Compras a Proveedores</span>
+                        <span>Compras, Devoluciones y Anulaciones</span>
                     </h1>
                     <p class="text-xs text-stone-500 mt-1">
-                        Recepción de insumos, costeo y kárdex con factor de conversión (RF-COM-01..08). Inmutables por diseño.
+                        Recepción de insumos, devoluciones parciales/totales, anulaciones, bitácora y exportación contable (RF-COM-01..08).
                     </p>
                 </div>
 
                 <!-- Acciones Superiores -->
-                <div class="flex items-center space-x-3">
+                <div class="flex flex-wrap items-center gap-2">
                     <div v-if="sucursales && sucursales.length > 1">
                         <select
                             v-model="sucursalSeleccionada"
-                            @change="cambiarSucursal"
-                            class="rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 shadow-xs focus:ring-1 focus:ring-orange-500"
+                            @change="aplicarFiltros"
+                            class="rounded-xl border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-700 shadow-xs focus:ring-1 focus:ring-orange-500"
                         >
                             <option v-for="s in sucursales" :key="s.id" :value="s.id">
                                 🏢 {{ s.nombre }}
                             </option>
                         </select>
                     </div>
+
+                    <a
+                        :href="urlExportarExcel"
+                        class="px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold shadow-xs transition inline-flex items-center gap-1.5"
+                    >
+                        <span>📊</span>
+                        <span>Exportar Excel</span>
+                    </a>
+
+                    <a
+                        :href="urlExportarPdf"
+                        class="px-3 py-2 rounded-xl border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-800 text-xs font-bold shadow-xs transition inline-flex items-center gap-1.5"
+                    >
+                        <span>📄</span>
+                        <span>Exportar PDF</span>
+                    </a>
 
                     <button
                         type="button"
@@ -45,12 +61,144 @@
                 </div>
             </div>
 
-            <!-- Tabla de Compras -->
-            <div class="bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
+            <!-- Barra de Búsqueda y Filtros por Fecha -->
+            <form
+                @submit.prevent="aplicarFiltros"
+                class="bg-white rounded-2xl border border-stone-200 p-4 shadow-xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end"
+            >
+                <div class="lg:col-span-2">
+                    <label class="block text-[11px] font-bold text-stone-600 mb-1">Buscar factura, proveedor, NIT, producto o motivo</label>
+                    <input
+                        v-model="filtroForm.buscar"
+                        type="text"
+                        placeholder="Ej. FAC-001, Distribuidora, Arroz..."
+                        class="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs text-stone-800 focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                    />
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-stone-600 mb-1">Fecha Desde</label>
+                    <input
+                        v-model="filtroForm.fecha_desde"
+                        type="date"
+                        class="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs text-stone-800"
+                    />
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-stone-600 mb-1">Fecha Hasta</label>
+                    <input
+                        v-model="filtroForm.fecha_hasta"
+                        type="date"
+                        class="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs text-stone-800"
+                    />
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-stone-600 mb-1">Estado</label>
+                    <select
+                        v-model="filtroForm.estado"
+                        class="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs text-stone-800 bg-white"
+                    >
+                        <option value="">Todos los estados</option>
+                        <option value="registrada">Registrada</option>
+                        <option value="devuelta_parcial">Devuelta Parcial</option>
+                        <option value="devuelta">Devuelta Total</option>
+                        <option value="anulada">Anulada</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button
+                        type="submit"
+                        class="flex-1 px-3 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold transition"
+                    >
+                        🔍 Filtrar
+                    </button>
+                    <button
+                        type="button"
+                        @click="limpiarFiltros"
+                        class="px-3 py-2 rounded-xl border border-stone-200 hover:bg-stone-100 text-stone-600 text-xs font-semibold transition"
+                    >
+                        Limpiar
+                    </button>
+                </div>
+            </form>
+
+            <!-- Pestañas de Navegación -->
+            <div class="flex flex-wrap gap-2 border-b border-stone-200 pb-2">
+                <button
+                    type="button"
+                    @click="tabActiva = 'compras'"
+                    :class="[
+                        'px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2',
+                        tabActiva === 'compras'
+                            ? 'bg-orange-600 text-white shadow-xs'
+                            : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50',
+                    ]"
+                >
+                    <span>🛒 Compras</span>
+                    <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-black/15">
+                        {{ compras.total ?? compras.data?.length ?? 0 }}
+                    </span>
+                </button>
+
+                <button
+                    type="button"
+                    @click="tabActiva = 'devoluciones'"
+                    :class="[
+                        'px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2',
+                        tabActiva === 'devoluciones'
+                            ? 'bg-amber-600 text-white shadow-xs'
+                            : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50',
+                    ]"
+                >
+                    <span>↩️ Devoluciones</span>
+                    <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-black/15">
+                        {{ devoluciones.length }}
+                    </span>
+                </button>
+
+                <button
+                    type="button"
+                    @click="tabActiva = 'anulaciones'"
+                    :class="[
+                        'px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2',
+                        tabActiva === 'anulaciones'
+                            ? 'bg-rose-600 text-white shadow-xs'
+                            : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50',
+                    ]"
+                >
+                    <span>🚫 Anulaciones</span>
+                    <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-black/15">
+                        {{ anulaciones.length }}
+                    </span>
+                </button>
+
+                <button
+                    type="button"
+                    @click="tabActiva = 'bitacora'"
+                    :class="[
+                        'px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2',
+                        tabActiva === 'bitacora'
+                            ? 'bg-stone-900 text-white shadow-xs'
+                            : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50',
+                    ]"
+                >
+                    <span>📜 Bitácora de Compras</span>
+                    <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-black/15">
+                        {{ bitacoraCompras.length }}
+                    </span>
+                </button>
+            </div>
+
+            <!-- PESTAÑA 1: TABLA DE COMPRAS CON ACORDEÓN -->
+            <div v-if="tabActiva === 'compras'" class="bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs border-collapse">
                         <thead>
                             <tr class="bg-stone-50 border-b border-stone-200 text-stone-500 uppercase tracking-wider font-semibold">
+                                <th class="p-3.5 w-10">Detalle</th>
                                 <th class="p-3.5">Factura #</th>
                                 <th class="p-3.5">Proveedor</th>
                                 <th class="p-3.5">Fecha</th>
@@ -63,66 +211,150 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-stone-100">
-                            <tr
-                                v-for="compra in compras.data"
-                                :key="compra.id"
-                                class="hover:bg-stone-50/70 transition"
-                            >
-                                <td class="p-3.5 font-mono font-bold text-stone-900 select-all">
-                                    {{ compra.numero_factura }}
-                                </td>
-                                <td class="p-3.5 font-medium text-stone-800">
-                                    {{ compra.proveedor }}
-                                </td>
-                                <td class="p-3.5 font-mono text-stone-600">
-                                    {{ compra.fecha_compra }}
-                                </td>
-                                <td class="p-3.5 text-stone-500">
-                                    {{ compra.items_count }} producto(s)
-                                </td>
-                                <td class="p-3.5 font-mono text-stone-600">
-                                    ${{ compra.subtotal.toLocaleString() }}
-                                </td>
-                                <td class="p-3.5 font-mono text-stone-600">
-                                    ${{ compra.impuesto_total.toLocaleString() }}
-                                </td>
-                                <td class="p-3.5 font-mono font-bold text-stone-900 text-sm">
-                                    ${{ compra.total.toLocaleString() }}
-                                </td>
-                                <td class="p-3.5">
-                                    <span
-                                        :class="[
-                                            'px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider',
-                                            badgeEstado(compra.estado)
-                                        ]"
-                                    >
-                                        {{ compra.estado_etiqueta }}
-                                    </span>
-                                </td>
-                                <td class="p-3.5 text-right space-x-1.5 whitespace-nowrap">
-                                    <button
-                                        v-if="compra.puede_devolver"
-                                        type="button"
-                                        @click="abrirModalDevolver(compra)"
-                                        class="px-2.5 py-1 border border-amber-300 text-amber-700 hover:bg-amber-50 rounded-lg font-semibold text-[11px] transition"
-                                        title="Registrar devolución a proveedor"
-                                    >
-                                        Devolver
-                                    </button>
-                                    <button
-                                        v-if="compra.puede_anular"
-                                        type="button"
-                                        @click="abrirModalAnular(compra)"
-                                        class="px-2.5 py-1 border border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg font-semibold text-[11px] transition"
-                                        title="Anular compra y revertir stock"
-                                    >
-                                        Anular
-                                    </button>
-                                </td>
-                            </tr>
+                            <template v-for="compra in compras.data" :key="compra.id">
+                                <tr
+                                    class="hover:bg-stone-50/70 transition cursor-pointer"
+                                    @click="toggleAcordeonCompra(compra.id)"
+                                >
+                                    <td class="p-3.5 text-center">
+                                        <button
+                                            type="button"
+                                            class="w-6 h-6 rounded-lg border border-stone-200 bg-stone-50 hover:bg-orange-50 text-stone-600 font-bold text-xs inline-flex items-center justify-center transition"
+                                            :title="acordeonCompra[compra.id] ? 'Ocultar detalle' : 'Ver detalle de productos y movimientos'"
+                                        >
+                                            {{ acordeonCompra[compra.id] ? '▾' : '▸' }}
+                                        </button>
+                                    </td>
+                                    <td class="p-3.5 font-mono font-bold text-stone-900 select-all">
+                                        {{ compra.numero_factura }}
+                                    </td>
+                                    <td class="p-3.5 font-medium text-stone-800">
+                                        <div>{{ compra.proveedor }}</div>
+                                        <span v-if="compra.proveedor_nit" class="text-[10px] text-stone-400 font-mono">NIT: {{ compra.proveedor_nit }}</span>
+                                    </td>
+                                    <td class="p-3.5 font-mono text-stone-600">
+                                        {{ compra.fecha_compra }}
+                                    </td>
+                                    <td class="p-3.5 text-stone-600 font-semibold">
+                                        {{ compra.items_count }} producto(s)
+                                    </td>
+                                    <td class="p-3.5 font-mono text-stone-600">
+                                        ${{ Number(compra.subtotal || 0).toLocaleString() }}
+                                    </td>
+                                    <td class="p-3.5 font-mono text-stone-600">
+                                        ${{ Number(compra.impuesto_total || 0).toLocaleString() }}
+                                    </td>
+                                    <td class="p-3.5 font-mono font-bold text-stone-900 text-sm">
+                                        ${{ Number(compra.total || 0).toLocaleString() }}
+                                    </td>
+                                    <td class="p-3.5">
+                                        <span
+                                            :class="[
+                                                'px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider',
+                                                badgeEstado(compra.estado)
+                                            ]"
+                                        >
+                                            {{ compra.estado_etiqueta }}
+                                        </span>
+                                    </td>
+                                    <td class="p-3.5 text-right space-x-1.5 whitespace-nowrap" @click.stop>
+                                        <button
+                                            v-if="compra.puede_devolver"
+                                            type="button"
+                                            @click="abrirModalDevolver(compra)"
+                                            class="px-2.5 py-1 border border-amber-300 text-amber-700 hover:bg-amber-50 rounded-lg font-semibold text-[11px] transition"
+                                            title="Registrar devolución a proveedor"
+                                        >
+                                            Devolver
+                                        </button>
+                                        <button
+                                            v-if="compra.puede_anular"
+                                            type="button"
+                                            @click="abrirModalAnular(compra)"
+                                            class="px-2.5 py-1 border border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg font-semibold text-[11px] transition"
+                                            title="Anular compra y revertir stock"
+                                        >
+                                            Anular
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Fila Acordeón Desplegable de la Compra -->
+                                <tr v-if="acordeonCompra[compra.id]" class="bg-stone-50/90 border-b border-stone-200">
+                                    <td colspan="10" class="p-4 space-y-4">
+                                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                            <!-- Detalle de Líneas de Compra -->
+                                            <div class="lg:col-span-2 bg-white rounded-xl border border-stone-200 p-3 space-y-2">
+                                                <div class="flex items-center justify-between border-b border-stone-100 pb-2">
+                                                    <span class="font-bold text-stone-800 text-xs">📦 Productos / Insumos de la Factura #{{ compra.numero_factura }}</span>
+                                                    <span class="text-[11px] text-stone-500">Registrado por: <strong>{{ compra.usuario }}</strong></span>
+                                                </div>
+                                                <table class="w-full text-[11px]">
+                                                    <thead>
+                                                        <tr class="text-stone-400 uppercase border-b border-stone-100">
+                                                            <th class="py-1.5 text-left">Descripción</th>
+                                                            <th class="py-1.5 text-left">Producto Vinculado</th>
+                                                            <th class="py-1.5 text-right">Cantidad</th>
+                                                            <th class="py-1.5 text-right">Costo Unit.</th>
+                                                            <th class="py-1.5 text-right">Subtotal Línea</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody class="divide-y divide-stone-100">
+                                                        <tr v-for="item in compra.items" :key="item.id">
+                                                            <td class="py-1.5 font-semibold text-stone-800">{{ item.descripcion }}</td>
+                                                            <td class="py-1.5 text-stone-500">{{ item.producto_menu || 'Insumo general' }}</td>
+                                                            <td class="py-1.5 text-right font-mono">{{ item.cantidad }}</td>
+                                                            <td class="py-1.5 text-right font-mono">${{ Number(item.costo_unitario || 0).toLocaleString() }}</td>
+                                                            <td class="py-1.5 text-right font-mono font-bold text-stone-900">${{ Number(item.total || 0).toLocaleString() }}</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            <!-- Historial de Devoluciones / Anulación de esta Compra -->
+                                            <div class="bg-white rounded-xl border border-stone-200 p-3 space-y-3">
+                                                <h4 class="font-bold text-stone-800 text-xs border-b border-stone-100 pb-2">
+                                                    🔎 Trazabilidad y Novedades
+                                                </h4>
+
+                                                <div v-if="compra.motivo_anulacion" class="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-[11px] space-y-1">
+                                                    <div class="font-bold">🚫 Compra Anulada</div>
+                                                    <div><strong>Motivo:</strong> {{ compra.motivo_anulacion }}</div>
+                                                    <div v-if="compra.anulado_por"><strong>Por:</strong> {{ compra.anulado_por }} ({{ compra.anulado_at }})</div>
+                                                </div>
+
+                                                <div v-if="compra.devoluciones && compra.devoluciones.length > 0" class="space-y-2">
+                                                    <div
+                                                        v-for="dev in compra.devoluciones"
+                                                        :key="dev.id"
+                                                        class="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] space-y-1"
+                                                    >
+                                                        <div class="flex justify-between font-bold">
+                                                            <span>↩️ Devolución {{ dev.tipo }}</span>
+                                                            <span class="font-mono">-${{ Number(dev.total_devuelto || 0).toLocaleString() }}</span>
+                                                        </div>
+                                                        <div><strong>Fecha:</strong> {{ dev.fecha }} · <strong>Por:</strong> {{ dev.usuario }}</div>
+                                                        <div><strong>Motivo:</strong> {{ dev.motivo }}</div>
+                                                        <ul v-if="dev.items_devueltos && dev.items_devueltos.length" class="list-disc list-inside text-[10px] text-amber-800 pt-1">
+                                                            <li v-for="(itDev, idx) in dev.items_devueltos" :key="idx">
+                                                                {{ itDev.descripcion }}: {{ itDev.cantidad_devuelta }} unid. (${{ Number(itDev.subtotal_devuelto || 0).toLocaleString() }})
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+
+                                                <div v-if="!compra.motivo_anulacion && (!compra.devoluciones || compra.devoluciones.length === 0)" class="text-[11px] text-stone-400 italic">
+                                                    Sin devoluciones ni anulaciones registradas sobre esta factura.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+
                             <tr v-if="!compras.data || compras.data.length === 0">
-                                <td colspan="9" class="p-8 text-center text-stone-400">
-                                    No se encontraron compras registradas en esta sucursal.
+                                <td colspan="10" class="p-8 text-center text-stone-400">
+                                    No se encontraron compras con los filtros seleccionados.
                                 </td>
                             </tr>
                         </tbody>
@@ -147,6 +379,220 @@
                             class="px-3 py-1.5 rounded-lg text-xs font-medium border border-stone-200 text-stone-300 opacity-50"
                         />
                     </template>
+                </div>
+            </div>
+
+            <!-- PESTAÑA 2: DEVOLUCIONES CON ACORDEÓN -->
+            <div v-if="tabActiva === 'devoluciones'" class="bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-amber-50/70 border-b border-amber-200 text-amber-900 uppercase tracking-wider font-semibold">
+                                <th class="p-3.5 w-10">Detalle</th>
+                                <th class="p-3.5">Factura Compra</th>
+                                <th class="p-3.5">Proveedor</th>
+                                <th class="p-3.5">Fecha Devolución</th>
+                                <th class="p-3.5">Modalidad</th>
+                                <th class="p-3.5">Motivo</th>
+                                <th class="p-3.5">Total Devuelto</th>
+                                <th class="p-3.5">Registrado Por</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-stone-100">
+                            <template v-for="dev in devoluciones" :key="dev.id">
+                                <tr
+                                    class="hover:bg-amber-50/30 transition cursor-pointer"
+                                    @click="acordeonDevolucion[dev.id] = !acordeonDevolucion[dev.id]"
+                                >
+                                    <td class="p-3.5 text-center">
+                                        <button
+                                            type="button"
+                                            class="w-6 h-6 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 font-bold text-xs inline-flex items-center justify-center"
+                                        >
+                                            {{ acordeonDevolucion[dev.id] ? '▾' : '▸' }}
+                                        </button>
+                                    </td>
+                                    <td class="p-3.5 font-mono font-bold text-stone-900">#{{ dev.numero_factura }}</td>
+                                    <td class="p-3.5 font-medium text-stone-800">{{ dev.proveedor }}</td>
+                                    <td class="p-3.5 font-mono text-stone-600">{{ dev.fecha_devolucion }}</td>
+                                    <td class="p-3.5">
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-100 text-amber-800 border border-amber-200">
+                                            {{ dev.tipo }}
+                                        </span>
+                                    </td>
+                                    <td class="p-3.5 text-stone-700">{{ dev.motivo }}</td>
+                                    <td class="p-3.5 font-mono font-bold text-amber-800">-${{ Number(dev.total_devuelto || 0).toLocaleString() }}</td>
+                                    <td class="p-3.5 text-stone-600">{{ dev.usuario }}</td>
+                                </tr>
+
+                                <tr v-if="acordeonDevolucion[dev.id]" class="bg-amber-50/40 border-b border-amber-100">
+                                    <td colspan="8" class="p-4">
+                                        <div class="bg-white rounded-xl border border-amber-200 p-3 space-y-2">
+                                            <div class="font-bold text-amber-900 text-xs">
+                                                📦 Productos devueltos en la Factura #{{ dev.numero_factura }}
+                                            </div>
+                                            <table class="w-full text-[11px]">
+                                                <thead>
+                                                    <tr class="text-stone-400 uppercase border-b border-stone-100">
+                                                        <th class="py-1 text-left">Producto / Insumo</th>
+                                                        <th class="py-1 text-right">Cantidad Devuelta</th>
+                                                        <th class="py-1 text-right">Costo Unitario</th>
+                                                        <th class="py-1 text-right">Subtotal Devuelto</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-stone-100">
+                                                    <tr v-for="(it, idx) in dev.items_devueltos" :key="idx">
+                                                        <td class="py-1.5 font-semibold text-stone-800">{{ it.descripcion }}</td>
+                                                        <td class="py-1.5 text-right font-mono">{{ it.cantidad_devuelta }}</td>
+                                                        <td class="py-1.5 text-right font-mono">${{ Number(it.costo_unitario || 0).toLocaleString() }}</td>
+                                                        <td class="py-1.5 text-right font-mono font-bold text-amber-800">-${{ Number(it.subtotal_devuelto || 0).toLocaleString() }}</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+
+                            <tr v-if="devoluciones.length === 0">
+                                <td colspan="8" class="p-8 text-center text-stone-400">
+                                    No hay devoluciones registradas para los filtros actuales.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- PESTAÑA 3: ANULACIONES CON ACORDEÓN -->
+            <div v-if="tabActiva === 'anulaciones'" class="bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-rose-50/70 border-b border-rose-200 text-rose-900 uppercase tracking-wider font-semibold">
+                                <th class="p-3.5 w-10">Detalle</th>
+                                <th class="p-3.5">Factura #</th>
+                                <th class="p-3.5">Proveedor</th>
+                                <th class="p-3.5">Fecha Compra</th>
+                                <th class="p-3.5">Fecha Anulación</th>
+                                <th class="p-3.5">Motivo de Anulación</th>
+                                <th class="p-3.5">Total Anulado</th>
+                                <th class="p-3.5">Anulado Por</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-stone-100">
+                            <template v-for="anu in anulaciones" :key="anu.id">
+                                <tr
+                                    class="hover:bg-rose-50/30 transition cursor-pointer"
+                                    @click="acordeonAnulacion[anu.id] = !acordeonAnulacion[anu.id]"
+                                >
+                                    <td class="p-3.5 text-center">
+                                        <button
+                                            type="button"
+                                            class="w-6 h-6 rounded-lg border border-rose-200 bg-rose-50 text-rose-800 font-bold text-xs inline-flex items-center justify-center"
+                                        >
+                                            {{ acordeonAnulacion[anu.id] ? '▾' : '▸' }}
+                                        </button>
+                                    </td>
+                                    <td class="p-3.5 font-mono font-bold text-stone-900">#{{ anu.numero_factura }}</td>
+                                    <td class="p-3.5 font-medium text-stone-800">{{ anu.proveedor }}</td>
+                                    <td class="p-3.5 font-mono text-stone-600">{{ anu.fecha_compra }}</td>
+                                    <td class="p-3.5 font-mono text-stone-600">{{ anu.anulado_at || '—' }}</td>
+                                    <td class="p-3.5 text-rose-800 font-medium">{{ anu.motivo_anulacion || '—' }}</td>
+                                    <td class="p-3.5 font-mono font-bold text-rose-700">${{ Number(anu.total || 0).toLocaleString() }}</td>
+                                    <td class="p-3.5 text-stone-600">{{ anu.anulado_por || anu.usuario }}</td>
+                                </tr>
+
+                                <tr v-if="acordeonAnulacion[anu.id]" class="bg-rose-50/30 border-b border-rose-100">
+                                    <td colspan="8" class="p-4">
+                                        <div class="bg-white rounded-xl border border-rose-200 p-3 space-y-2">
+                                            <div class="font-bold text-rose-900 text-xs">
+                                                🚫 Líneas revertidas de la Factura #{{ anu.numero_factura }}
+                                            </div>
+                                            <table class="w-full text-[11px]">
+                                                <thead>
+                                                    <tr class="text-stone-400 uppercase border-b border-stone-100">
+                                                        <th class="py-1 text-left">Descripción</th>
+                                                        <th class="py-1 text-right">Cantidad</th>
+                                                        <th class="py-1 text-right">Costo Unitario</th>
+                                                        <th class="py-1 text-right">Total Línea</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-stone-100">
+                                                    <tr v-for="item in anu.items" :key="item.id">
+                                                        <td class="py-1.5 font-semibold text-stone-800">{{ item.descripcion }}</td>
+                                                        <td class="py-1.5 text-right font-mono">{{ item.cantidad }}</td>
+                                                        <td class="py-1.5 text-right font-mono">${{ Number(item.costo_unitario || 0).toLocaleString() }}</td>
+                                                        <td class="py-1.5 text-right font-mono font-bold text-rose-700">${{ Number(item.total || 0).toLocaleString() }}</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+
+                            <tr v-if="anulaciones.length === 0">
+                                <td colspan="8" class="p-8 text-center text-stone-400">
+                                    No hay compras anuladas para los filtros seleccionados.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- PESTAÑA 4: BITÁCORA DE COMPRAS CON ACORDEÓN -->
+            <div v-if="tabActiva === 'bitacora'" class="bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-stone-100 border-b border-stone-200 text-stone-600 uppercase tracking-wider font-semibold">
+                                <th class="p-3.5 w-10">Detalle</th>
+                                <th class="p-3.5">Fecha y Hora</th>
+                                <th class="p-3.5">Evento</th>
+                                <th class="p-3.5">Descripción de Auditoría</th>
+                                <th class="p-3.5">Usuario Responsable</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-stone-100">
+                            <template v-for="bit in bitacoraCompras" :key="bit.id">
+                                <tr
+                                    class="hover:bg-stone-50 transition cursor-pointer"
+                                    @click="acordeonBitacora[bit.id] = !acordeonBitacora[bit.id]"
+                                >
+                                    <td class="p-3.5 text-center">
+                                        <button
+                                            type="button"
+                                            class="w-6 h-6 rounded-lg border border-stone-200 bg-stone-50 text-stone-700 font-bold text-xs inline-flex items-center justify-center"
+                                        >
+                                            {{ acordeonBitacora[bit.id] ? '▾' : '▸' }}
+                                        </button>
+                                    </td>
+                                    <td class="p-3.5 font-mono text-stone-600 whitespace-nowrap">{{ bit.fecha }}</td>
+                                    <td class="p-3.5">
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-stone-200 text-stone-800">
+                                            {{ bit.evento }}
+                                        </span>
+                                    </td>
+                                    <td class="p-3.5 font-medium text-stone-800">{{ bit.descripcion }}</td>
+                                    <td class="p-3.5 text-stone-600 font-semibold">{{ bit.usuario }}</td>
+                                </tr>
+
+                                <tr v-if="acordeonBitacora[bit.id]" class="bg-stone-50 border-b border-stone-200">
+                                    <td colspan="5" class="p-4">
+                                        <pre class="bg-stone-900 text-stone-100 rounded-xl p-3 text-[11px] font-mono overflow-x-auto">{{ JSON.stringify(bit.propiedades, null, 2) }}</pre>
+                                    </td>
+                                </tr>
+                            </template>
+
+                            <tr v-if="bitacoraCompras.length === 0">
+                                <td colspan="5" class="p-8 text-center text-stone-400">
+                                    No se encontraron registros en la bitácora de compras.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -202,10 +648,10 @@
                         </div>
                     </div>
 
-                    <!-- Configuración de Impuestos (Radio buttons por defecto sin impuesto A.6) -->
+                    <!-- Configuración de Impuestos -->
                     <div class="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
                         <span class="font-semibold text-stone-700 block">Impuesto de Compra:</span>
-                        <div class="flex items-center space-x-4">
+                        <div class="flex flex-wrap items-center gap-4">
                             <label class="flex items-center space-x-1.5 cursor-pointer">
                                 <input type="radio" :value="0" v-model.number="formCompra.impuesto_porcentaje" class="text-orange-600" />
                                 <span>Sin impuesto (0%)</span>
@@ -479,12 +925,15 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 const props = defineProps({
     compras: { type: Object, required: true },
+    devoluciones: { type: Array, default: () => [] },
+    anulaciones: { type: Array, default: () => [] },
+    bitacoraCompras: { type: Array, default: () => [] },
     proveedores: { type: Array, default: () => [] },
     productos: { type: Array, default: () => [] },
     filtros: { type: Object, default: () => ({}) },
@@ -493,9 +942,55 @@ const props = defineProps({
 });
 
 const sucursalSeleccionada = ref(props.sucursal_id);
+const tabActiva = ref('compras');
 
-const cambiarSucursal = () => {
-    router.get('/admin/compras', { sucursal_id: sucursalSeleccionada.value });
+// Estado de acordeones desplegables
+const acordeonCompra = reactive({});
+const acordeonDevolucion = reactive({});
+const acordeonAnulacion = reactive({});
+const acordeonBitacora = reactive({});
+
+const toggleAcordeonCompra = (id) => {
+    acordeonCompra[id] = !acordeonCompra[id];
+};
+
+// Filtros
+const filtroForm = reactive({
+    buscar: props.filtros?.buscar || '',
+    fecha_desde: props.filtros?.fecha_desde || '',
+    fecha_hasta: props.filtros?.fecha_hasta || '',
+    estado: props.filtros?.estado || '',
+});
+
+const queryParamsString = computed(() => {
+    const params = new URLSearchParams();
+    params.set('sucursal_id', String(sucursalSeleccionada.value));
+    if (filtroForm.buscar) params.set('buscar', filtroForm.buscar);
+    if (filtroForm.fecha_desde) params.set('fecha_desde', filtroForm.fecha_desde);
+    if (filtroForm.fecha_hasta) params.set('fecha_hasta', filtroForm.fecha_hasta);
+    if (filtroForm.estado) params.set('estado', filtroForm.estado);
+    return params.toString();
+});
+
+const urlExportarExcel = computed(() => `/admin/compras/exportar/excel?${queryParamsString.value}`);
+const urlExportarPdf = computed(() => `/admin/compras/exportar/pdf?${queryParamsString.value}`);
+
+const aplicarFiltros = () => {
+    router.get('/admin/compras', {
+        sucursal_id: sucursalSeleccionada.value,
+        buscar: filtroForm.buscar || undefined,
+        fecha_desde: filtroForm.fecha_desde || undefined,
+        fecha_hasta: filtroForm.fecha_hasta || undefined,
+        estado: filtroForm.estado || undefined,
+    }, { preserveState: true, preserveScroll: true });
+};
+
+const limpiarFiltros = () => {
+    filtroForm.buscar = '';
+    filtroForm.fecha_desde = '';
+    filtroForm.fecha_hasta = '';
+    filtroForm.estado = '';
+    aplicarFiltros();
 };
 
 // Modal Compra
@@ -514,7 +1009,7 @@ const formCompra = useForm({
 
 const abrirModalCompra = () => {
     formCompra.reset();
-    formCompra.sucursal_id = props.sucursal_id;
+    formCompra.sucursal_id = sucursalSeleccionada.value;
     formCompra.fecha_compra = new Date().toISOString().split('T')[0];
     modalCompraAbierto.value = true;
 };
@@ -574,7 +1069,7 @@ const ejecutarAnulacion = () => {
     });
 };
 
-// Modal Devolver (Item 4)
+// Modal Devolver
 const modalDevolverAbierto = ref(false);
 const tipoDevolucion = ref('total');
 const itemsParaDevolver = ref([]);
@@ -625,7 +1120,7 @@ const formProveedor = useForm({
 
 const abrirModalProveedor = () => {
     formProveedor.reset();
-    formProveedor.sucursal_id = props.sucursal_id;
+    formProveedor.sucursal_id = sucursalSeleccionada.value;
     modalProveedorAbierto.value = true;
 };
 
@@ -641,7 +1136,7 @@ const badgeEstado = (estado) => {
         'registrada': 'bg-emerald-100 text-emerald-800 border border-emerald-200',
         'anulada': 'bg-rose-100 text-rose-800 border border-rose-200',
         'devuelta': 'bg-amber-100 text-amber-800 border border-amber-200',
+        'devuelta_parcial': 'bg-amber-50 text-amber-700 border border-amber-200',
     }[estado] || 'bg-stone-100 text-stone-700';
 };
 </script>
-

@@ -222,4 +222,24 @@ class Sucursal extends Model
     {
         return $this->hasMany(PlantillaCorreo::class, 'sucursal_id');
     }
+
+    /**
+     * Estaciones / monitores de cocina de esta sucursal.
+     *
+     * @return HasMany<EstacionCocina, $this>
+     */
+    public function estacionesCocina(): HasMany
+    {
+        return $this->hasMany(EstacionCocina::class, 'sucursal_id');
+    }
+
+    /**
+     * Asignaciones de base de caja de esta sucursal.
+     *
+     * @return HasMany<AsignacionBaseCaja, $this>
+     */
+    public function asignacionesBaseCaja(): HasMany
+    {
+        return $this->hasMany(AsignacionBaseCaja::class, 'sucursal_id');
+    }
 }
