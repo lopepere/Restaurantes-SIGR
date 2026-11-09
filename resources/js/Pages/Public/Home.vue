@@ -319,13 +319,15 @@
                         <div
                             v-for="item in carrito"
                             :key="item.id"
-                            class="flex items-start justify-between pb-4 border-b border-stone-100"
+                            class="flex items-stretch justify-between gap-3 pb-4 border-b border-stone-100"
                         >
-                            <div class="flex-1 pr-3">
-                                <h4 class="text-sm font-bold text-stone-900">{{ item.nombre }}</h4>
-                                <span class="text-xs text-stone-500 font-medium">
-                                    {{ item.precio_unitario_formateado }} c/u
-                                </span>
+                            <div class="flex-1 min-w-0 flex flex-col justify-between">
+                                <div>
+                                    <h4 class="text-sm font-bold text-stone-900 leading-snug">{{ item.nombre }}</h4>
+                                    <span class="text-xs text-stone-500 font-medium block mt-0.5">
+                                        {{ item.precio_unitario_formateado }} c/u
+                                    </span>
+                                </div>
                                 <input
                                     type="text"
                                     v-model="item.notas"
@@ -334,35 +336,36 @@
                                 />
                             </div>
 
-                            <div class="flex flex-col items-end gap-1.5">
-                                <span class="text-sm font-extrabold text-stone-900">
-                                    {{ formatearMoneda(item.precio_unitario * item.cantidad) }}
-                                </span>
-                                <div class="flex items-center gap-1.5">
-                                    <div class="flex items-center space-x-1.5 bg-stone-100 rounded-lg p-1">
-                                        <button
-                                            type="button"
-                                            @click="decrementarCantidad(item.id)"
-                                            class="w-6 h-6 flex items-center justify-center font-bold text-stone-700 bg-white rounded-md hover:bg-stone-200 transition"
-                                        >
-                                            -
-                                        </button>
-                                        <span class="w-5 text-center text-xs font-bold">{{ item.cantidad }}</span>
-                                        <button
-                                            type="button"
-                                            @click="incrementarCantidad(item)"
-                                            class="w-6 h-6 flex items-center justify-center font-bold text-stone-700 bg-white rounded-md hover:bg-stone-200 transition"
-                                        >
-                                            +
-                                        </button>
-                                    </div>
+                            <div class="flex flex-col items-end justify-between shrink-0">
+                                <div class="flex flex-col items-end">
                                     <button
                                         type="button"
                                         @click="eliminarDelCarrito(item.id)"
-                                        class="w-7 h-7 flex items-center justify-center text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition rounded-lg text-xs font-bold cursor-pointer"
+                                        class="text-stone-400 hover:text-rose-600 transition text-xs font-bold leading-none mb-1 cursor-pointer"
                                         title="Quitar producto del pedido"
                                     >
                                         ✕
+                                    </button>
+                                    <span class="text-sm font-extrabold text-stone-900 leading-tight whitespace-nowrap">
+                                        {{ formatearMoneda(item.precio_unitario * item.cantidad) }}
+                                    </span>
+                                </div>
+
+                                <div class="flex items-center space-x-1.5 bg-stone-100 rounded-lg p-1 mt-2">
+                                    <button
+                                        type="button"
+                                        @click="decrementarCantidad(item.id)"
+                                        class="w-6 h-6 flex items-center justify-center font-bold text-stone-700 bg-white rounded-md hover:bg-stone-200 transition cursor-pointer"
+                                    >
+                                        -
+                                    </button>
+                                    <span class="w-5 text-center text-xs font-bold">{{ item.cantidad }}</span>
+                                    <button
+                                        type="button"
+                                        @click="incrementarCantidad(item)"
+                                        class="w-6 h-6 flex items-center justify-center font-bold text-stone-700 bg-white rounded-md hover:bg-stone-200 transition cursor-pointer"
+                                    >
+                                        +
                                     </button>
                                 </div>
                             </div>
