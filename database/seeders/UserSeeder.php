@@ -14,6 +14,7 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         $sucursalCentro = Sucursal::where('slug', 'sede-centro')->first();
+        $sucursalNorte = Sucursal::where('slug', 'sede-norte')->first();
 
         // 1. Super Administrador (Acceso global)
         $superadmin = User::firstOrCreate(
@@ -33,48 +34,82 @@ class UserSeeder extends Seeder
         );
         $superadmin->assignRole('super_admin');
 
-        // 2. Administrador de Sucursal
-        $admin = User::firstOrCreate(
-            ['email' => 'admin@sigr.test'],
-            [
-                'nombre' => 'Administrador Sede Centro',
-                'telefono' => '+573009990002',
-                'direccion' => 'Calle 50 # 45-67, Medellín',
-                'password' => Hash::make('password'),
-                'avatar' => AvatarService::generar('Admin Centro'),
-                'idioma' => 'es',
-                'activo' => true,
-                'origen' => OrigenUsuario::PERSONAL,
-                'email_verified_at' => now(),
-                'politica_aceptada_at' => now(),
-            ]
-        );
-        if ($sucursalCentro) {
-            $admin->sucursales()->syncWithoutDetaching([$sucursalCentro->id]);
-            setPermissionsTeamId($sucursalCentro->id);
-            $admin->assignRole('admin');
+        // 2. Administrador de Sucursal Centro (admin.centro@sigr.test y admin@sigr.test)
+        $adminUsers = [
+            ['email' => 'admin@sigr.test', 'telefono' => '+573009990002'],
+            ['email' => 'admin.centro@sigr.test', 'telefono' => '+573009990021'],
+        ];
+        foreach ($adminUsers as $adminData) {
+            $admin = User::firstOrCreate(
+                ['email' => $adminData['email']],
+                [
+                    'nombre' => 'Administrador Sede Centro',
+                    'telefono' => $adminData['telefono'],
+                    'direccion' => 'Calle 50 # 45-67, Medellín',
+                    'password' => Hash::make('password'),
+                    'avatar' => AvatarService::generar('Admin Centro'),
+                    'idioma' => 'es',
+                    'activo' => true,
+                    'origen' => OrigenUsuario::PERSONAL,
+                    'email_verified_at' => now(),
+                    'politica_aceptada_at' => now(),
+                ]
+            );
+            if ($sucursalCentro) {
+                $admin->sucursales()->syncWithoutDetaching([$sucursalCentro->id]);
+                setPermissionsTeamId($sucursalCentro->id);
+                $admin->assignRole('admin');
+            }
         }
 
-        // 3. Mesero (con teléfono para CA-03)
-        $mesero = User::firstOrCreate(
-            ['email' => 'mesero@sigr.test'],
-            [
-                'nombre' => 'Carlos Mesero',
-                'telefono' => '+573001112233',
-                'direccion' => 'Carrera 70 # 32-10, Medellín',
-                'password' => Hash::make('password'),
-                'avatar' => AvatarService::generar('Carlos Mesero'),
-                'idioma' => 'es',
-                'activo' => true,
-                'origen' => OrigenUsuario::PERSONAL,
-                'email_verified_at' => now(),
-                'politica_aceptada_at' => now(),
-            ]
-        );
-        if ($sucursalCentro) {
-            $mesero->sucursales()->syncWithoutDetaching([$sucursalCentro->id]);
-            setPermissionsTeamId($sucursalCentro->id);
-            $mesero->assignRole('mesero');
+        // 2b. Administrador de Sucursal Norte
+        if ($sucursalNorte) {
+            $adminNorte = User::firstOrCreate(
+                ['email' => 'admin.norte@sigr.test'],
+                [
+                    'nombre' => 'Administrador Sede Norte',
+                    'telefono' => '+573009990003',
+                    'direccion' => 'Carrera 43A # 1-50, Medellín',
+                    'password' => Hash::make('password'),
+                    'avatar' => AvatarService::generar('Admin Norte'),
+                    'idioma' => 'es',
+                    'activo' => true,
+                    'origen' => OrigenUsuario::PERSONAL,
+                    'email_verified_at' => now(),
+                    'politica_aceptada_at' => now(),
+                ]
+            );
+            $adminNorte->sucursales()->syncWithoutDetaching([$sucursalNorte->id]);
+            setPermissionsTeamId($sucursalNorte->id);
+            $adminNorte->assignRole('admin');
+        }
+
+        // 3. Mesero (mesero.centro@sigr.test y mesero@sigr.test)
+        $meseroUsers = [
+            ['email' => 'mesero@sigr.test', 'telefono' => '+573001112233'],
+            ['email' => 'mesero.centro@sigr.test', 'telefono' => '+573001112235'],
+        ];
+        foreach ($meseroUsers as $meseroData) {
+            $mesero = User::firstOrCreate(
+                ['email' => $meseroData['email']],
+                [
+                    'nombre' => 'Carlos Mesero',
+                    'telefono' => $meseroData['telefono'],
+                    'direccion' => 'Carrera 70 # 32-10, Medellín',
+                    'password' => Hash::make('password'),
+                    'avatar' => AvatarService::generar('Carlos Mesero'),
+                    'idioma' => 'es',
+                    'activo' => true,
+                    'origen' => OrigenUsuario::PERSONAL,
+                    'email_verified_at' => now(),
+                    'politica_aceptada_at' => now(),
+                ]
+            );
+            if ($sucursalCentro) {
+                $mesero->sucursales()->syncWithoutDetaching([$sucursalCentro->id]);
+                setPermissionsTeamId($sucursalCentro->id);
+                $mesero->assignRole('mesero');
+            }
         }
 
         // 4. Cliente creado a partir de Pedido

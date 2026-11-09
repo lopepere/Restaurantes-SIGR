@@ -113,4 +113,3 @@ test('superadministrador tiene acceso global y puede consultar cualquier sucursa
         'sucursal_id' => $this->sucursalNorte->id,
     ]))->assertOk();
 });
-

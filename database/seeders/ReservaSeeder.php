@@ -125,10 +125,10 @@ class ReservaSeeder extends Seeder
                         'hora_fin' => '21:00:00',
                         'personas' => 4,
                         'estado' => EstadoReserva::CONFIRMADA,
-                        'nombre_contacto' => $cliente->name,
+                        'nombre_contacto' => $cliente->nombre ?? 'Ana Gómez',
                         'email_contacto' => $cliente->email,
                         'telefono_contacto' => $cliente->telefono ?? '3001234567',
-                        'notas_cliente' => 'Mesa cerca a la ventana si es posible.',
+                        'notas' => 'Mesa cerca a la ventana si es posible.',
                     ]
                 );
 
@@ -147,10 +147,10 @@ class ReservaSeeder extends Seeder
                         'hora_fin' => '15:00:00',
                         'personas' => 4,
                         'estado' => EstadoReserva::PENDIENTE,
-                        'nombre_contacto' => $cliente->name,
+                        'nombre_contacto' => $cliente->nombre ?? 'Ana Gómez',
                         'email_contacto' => $cliente->email,
                         'telefono_contacto' => $cliente->telefono ?? '3001234567',
-                        'notas_cliente' => 'Traemos pastel de cumpleaños.',
+                        'notas' => 'Traemos pastel de cumpleaños.',
                     ]
                 );
             }

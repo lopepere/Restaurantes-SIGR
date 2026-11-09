@@ -21,5 +21,18 @@ class SucursalSeeder extends Seeder
                 'activa' => true,
             ]
         );
+
+        Sucursal::firstOrCreate(
+            ['slug' => 'sede-norte'],
+            [
+                'nombre' => 'Sede Norte',
+                'direccion' => 'Carrera 43A # 1-50, Medellín, Colombia',
+                'telefono' => '+573007654321',
+                'zona_horaria' => 'America/Bogota',
+                'moneda' => 'COP',
+                'idioma' => 'es',
+                'activa' => true,
+            ]
+        );
     }
 }
