@@ -29,7 +29,7 @@ return new class extends Migration
             $table->softDeletes();
             $table->timestamps();
 
-            $table->index(['sucursal_id', 'activa', 'publicada', 'fecha_inicio', 'fecha_fin']);
+            $table->index(['sucursal_id', 'activa', 'publicada', 'fecha_inicio', 'fecha_fin'], 'promociones_sucursal_vigencia_idx');
         });
     }
 

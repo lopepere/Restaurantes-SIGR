@@ -27,7 +27,7 @@ return new class extends Migration
             $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
-            $table->index(['sucursal_id', 'item_menu_id', 'created_at']);
+            $table->index(['sucursal_id', 'item_menu_id', 'created_at'], 'mov_inv_suc_item_created_idx');
             $table->index(['referencia_tipo', 'referencia_id']);
             $table->index(['sucursal_id', 'tipo']);
         });
