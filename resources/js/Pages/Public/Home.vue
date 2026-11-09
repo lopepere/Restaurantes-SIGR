@@ -898,18 +898,19 @@ const checkoutError = ref(null);
 
 const checkoutForm = ref({
     tipo: 'domicilio',
-    nombre_contacto: '',
-    telefono_contacto: '',
-    email_contacto: '',
-    direccion_entrega: '',
+    nombre_contacto: page.props.auth?.user?.nombre || page.props.auth?.user?.name || '',
+    telefono_contacto: page.props.auth?.user?.telefono || '',
+    email_contacto: page.props.auth?.user?.email || '',
+    direccion_entrega: page.props.auth?.user?.direccion || '',
     notas: '',
 });
 
 function procederAlPedido() {
     const user = page.props.auth?.user;
     if (user) {
-        if (!checkoutForm.value.nombre_contacto && user.nombre) {
-            checkoutForm.value.nombre_contacto = user.nombre;
+        const nombreUsuario = user.nombre || user.name || '';
+        if (!checkoutForm.value.nombre_contacto && nombreUsuario) {
+            checkoutForm.value.nombre_contacto = nombreUsuario;
         }
         if (!checkoutForm.value.email_contacto && user.email) {
             checkoutForm.value.email_contacto = user.email;
