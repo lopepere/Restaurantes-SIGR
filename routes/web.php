@@ -104,6 +104,7 @@ Route::middleware(['auth', 'role:mesero'])->prefix('mesero')->name('mesero.')->g
     Route::get('/pedidos/crear', [MeseroPedidoController::class, 'create'])->name('pedidos.create');
     Route::post('/pedidos', [MeseroPedidoController::class, 'store'])->name('pedidos.store');
     Route::put('/pedidos/{pedido}', [MeseroPedidoController::class, 'editar'])->name('pedidos.update');
+    Route::patch('/pedidos/{pedido}/mesa', [MeseroPedidoController::class, 'cambiarMesa'])->name('pedidos.mesa');
     Route::post('/pedidos/{pedido}/cancelar', [MeseroPedidoController::class, 'solicitarCancelacion'])->name('pedidos.cancelar');
 });
 

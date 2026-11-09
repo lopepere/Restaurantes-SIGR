@@ -36,6 +36,10 @@ class CajaController extends Controller
         $primerId = $primeraSucursal ? $primeraSucursal->id : 1;
         $sucursalId = (int) $request->input('sucursal_id', session('sucursal_activa_id', $primerId));
 
+        if (! $esSuperAdmin && ! in_array($sucursalId, $user->sucursalIds(), true)) {
+            abort(403, 'No tienes autorización para acceder a las cajas de esta sucursal.');
+        }
+
         $cajas = Caja::where('sucursal_id', $sucursalId)->where('activa', true)->get();
 
         // Sesión activa actual en la sucursal

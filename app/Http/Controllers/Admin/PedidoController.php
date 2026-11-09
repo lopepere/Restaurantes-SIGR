@@ -34,6 +34,10 @@ class PedidoController extends Controller
         $primerId = $primeraSucursal ? $primeraSucursal->id : 1;
         $sucursalId = (int) $request->input('sucursal_id', session('sucursal_activa_id', $primerId));
 
+        if (! $esSuperAdmin && ! in_array($sucursalId, $user->sucursalIds(), true)) {
+            abort(403, 'No tienes autorización para acceder a los pedidos de esta sucursal.');
+        }
+
         $tab = $request->input('tab', 'en_curso');
 
         $query = Pedido::withoutGlobalScopes()

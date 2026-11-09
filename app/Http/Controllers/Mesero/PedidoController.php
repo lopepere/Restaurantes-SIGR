@@ -162,4 +162,19 @@ class PedidoController extends Controller
 
         return back()->with('success', 'Solicitud de cancelación remitida a administración.');
     }
+
+    /**
+     * Asigna o cambia la mesa de un pedido en sitio (RF-PED-11, CA-11).
+     */
+    public function cambiarMesa(Request $request, Pedido $pedido): RedirectResponse
+    {
+        $validated = $request->validate([
+            'espacio_id' => ['required', 'exists:espacios,id'],
+        ]);
+
+        $pedido->espacio_id = (int) $validated['espacio_id'];
+        $pedido->save();
+
+        return back()->with('success', "Mesa asignada al pedido #{$pedido->numero}.");
+    }
 }

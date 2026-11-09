@@ -325,3 +325,4 @@ function imprimirInforme() {
     window.print();
 }
 </script>
+

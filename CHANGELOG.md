@@ -4,7 +4,25 @@ Todos los cambios notables de este proyecto serán documentados en este archivo 
 
 ---
 
-## [Sin publicar]
+## [1.0.0] - 2026-11-09
+
+### Añadido (Iteración I-6 · Estabilización y Línea Base LB-01) [LB-01]
+- **Suite de Pruebas de Aceptación End-to-End**:
+  - `tests/Feature/Estabilizacion/CriteriosAceptacionTest.php`: 19 pruebas integrales cubriendo los Criterios de Aceptación clave (CA-05, CA-06, CA-07, CA-08, CA-11, CA-12, CA-13, CA-14, CA-15, CA-16, CA-17, CA-18, CA-30, CA-34, CA-35, CA-36, CA-38, CA-39, CA-40).
+  - `tests/Feature/Estabilizacion/AutorizacionCruzadaTest.php`: 6 pruebas de blindaje de autorización cruzada por rol y por sucursal (RNF-SEG-04, RN-GEN-02) verificando rechazos HTTP 403 automáticos en todos los módulos administrativos y redirecciones de visitantes no autenticados.
+- **Blindaje y Refuerzos de Dominio**:
+  - `CrearPedidoAction`: auto-bloqueo atómico de disponibilidad (`disponible = false`) y difusión de evento WebSocket `ProductoAgotado` cuando la existencia alcanza 0 bajo concurrencia pesimista (CA-05).
+  - `Mesero\PedidoController`: endpoint `PATCH /mesero/pedidos/{pedido}/mesa` para cambio ágil de mesa por parte del mesero a cargo (CA-11).
+  - Controladores Administrativos (`PedidoController`, `ComprobanteController`, `CajaController`, `CompraController`, `InventarioController`, `InformeController`, `ReservaController`): verificación explícita de `sucursal_id` en peticiones con parámetro, bloqueando acceso cruzado no autorizado a administradores de sedes ajenas (CA-30, RNF-SEG-04).
+- **Documentación Técnica Integral**:
+  - `README.md`: guía completa de instalación (Sail y Local), credenciales de prueba para todos los roles, comandos SQL de auditoría inmutable, variables de entorno y ejecución de daemons.
+  - `docs/base-de-datos.md`: arquitectura relacional completa, juego de caracteres UTF8MB4, aislamiento lógico multi-tenant con `BelongsToSucursal`, catálogo de tablas y reglas de inmutabilidad (compras, comprobantes, kárdex, auditoría).
+  - `docs/despliegue.md`: arquitectura de producción recomendada (Nginx, PHP-FPM 8.3+, MySQL 8.0, Redis 7, Laravel Reverb), despliegue paso a paso, archivos de configuración Supervisor para Queue Worker y Reverb, crontab de Laravel Scheduler y bloque de servidor Nginx con proxy WebSocket y TLS 1.3.
+- **Métricas de Calidad**:
+  - 123 pruebas de aceptación y características pasando al 100% (543 aserciones).
+  - 0 violaciones en Laravel Pint.
+  - 0 errores en Larastan / PHPStan nivel 6.
+  - 0 consultas N+1 garantizadas con `Model::preventLazyLoading` activo.
 
 ### Añadido (Iteración I-5 · Operación: Inventario, Compras, Caja, Comprobantes FAC, Plantillas e Informes) [LB-01] [SC-03] [RF-INV, RF-COM, RF-CAJ, RF-FAC, RF-CFG-04..09, RF-INF] [CA-13..18, 27..31, 34..36, 38..40]
 - **Migraciones de Base de Datos**:

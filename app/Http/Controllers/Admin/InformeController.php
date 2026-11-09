@@ -32,6 +32,10 @@ class InformeController extends Controller
         $primerId = $primeraSucursal ? $primeraSucursal->id : 1;
         $sucursalId = (int) $request->input('sucursal_id', session('sucursal_activa_id', $primerId));
 
+        if (! $esSuperAdmin && ! in_array($sucursalId, $user->sucursalIds(), true)) {
+            abort(403, 'No tienes autorización para acceder a los informes de esta sucursal.');
+        }
+
         $periodo = $request->input('periodo', 'hoy');
         $fechaInicio = match ($periodo) {
             'hoy' => Carbon::today()->startOfDay(),

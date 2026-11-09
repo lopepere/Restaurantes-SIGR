@@ -32,6 +32,10 @@ class InventarioController extends Controller
         $primerId = $primeraSucursal ? $primeraSucursal->id : 1;
         $sucursalId = (int) $request->input('sucursal_id', session('sucursal_activa_id', $primerId));
 
+        if (! $esSuperAdmin && ! in_array($sucursalId, $user->sucursalIds(), true)) {
+            abort(403, 'No tienes autorización para acceder al inventario de esta sucursal.');
+        }
+
         $query = ItemMenu::withoutGlobalScopes()
             ->where('sucursal_id', $sucursalId)
             ->where('activo', true)

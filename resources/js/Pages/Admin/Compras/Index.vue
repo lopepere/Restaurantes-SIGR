@@ -563,3 +563,4 @@ const badgeEstado = (estado) => {
     }[estado] || 'bg-stone-100 text-stone-700';
 };
 </script>
+

@@ -207,11 +207,11 @@ class CrearPedidoAction
                             }
 
                             $compLocked->existencia = (float) $compLocked->existencia - $cantRequerida;
-                            $compLocked->save();
-
                             if ((float) $compLocked->existencia <= 0.0) {
+                                $compLocked->disponible = false;
                                 event(new ProductoAgotado($sucursalId, $compLocked->id, $compLocked->nombre));
                             }
+                            $compLocked->save();
                         }
                     }
 
@@ -229,11 +229,11 @@ class CrearPedidoAction
                     }
 
                     $itemLocked->existencia = (float) $itemLocked->existencia - $cantidad;
-                    $itemLocked->save();
-
                     if ((float) $itemLocked->existencia <= 0.0) {
+                        $itemLocked->disponible = false;
                         event(new ProductoAgotado($sucursalId, $item->id, $item->nombre));
                     }
+                    $itemLocked->save();
                 }
 
                 // Cálculo de precios y promociones
