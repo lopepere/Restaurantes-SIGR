@@ -34,52 +34,24 @@ npm run dev
 ```
 
 ### Opción B: Entorno Local Directo (XAMPP / PHP CLI)
+
+#### B.1. Conexión MySQL en XAMPP (Recomendada / Activa por defecto)
+Permite visualizar y administrar todas las tablas desde **phpMyAdmin** (`http://localhost/phpmyadmin`).
+
+**Datos de Conexión de Prueba en MySQL:**
+- **Servidor / Host:** `127.0.0.1` (o `localhost`)
+- **Puerto:** `3306`
+- **Base de Datos:** `sigr`
+- **Juego de caracteres:** `utf8mb4`
+- **Cotejamiento:** `utf8mb4_unicode_ci`
+- **Usuario:** `root`
+- **Contraseña:** *(vacía)*
+- **Panel phpMyAdmin:** [http://localhost/phpmyadmin/index.php?route=/database/structure&db=sigr](http://localhost/phpmyadmin/index.php?route=/database/structure&db=sigr)
+
 ```bash
-# 1. Copiar configuración de entorno
-cp .env.example .env
+# 1. Asegurar que MySQL esté iniciado en el panel de XAMPP
 
-# 2. Instalar dependencias backend y frontend
-composer install
-npm install
-
-# 3. Generar clave de aplicación y enlazar almacenamiento
-php artisan key:generate
-php artisan storage:link
-
-# 4. Compilar assets frontend
-npm run build # o npm run dev para desarrollo con HMR
-
-# 5. Ejecutar migraciones con semilleros oficiales
-php artisan migrate --seed
-```
-
----
-
-## 🔑 Cuentas de Acceso de Prueba (Seeders)
-
-Todos los usuarios de prueba creados por los seeders oficiales (`RolesYPermisosSeeder`, `DatabaseSeeder`, `OperacionSeeder`, `ReservaSeeder`) tienen la contraseña predeterminada: `password`.
-
-| Rol | Correo Electrónico | Contraseña | Alcance / Permisos |
-| :--- | :--- | :--- | :--- |
-| **Super Administrador** | `superadmin@sigr.test` | `password` | Acceso global a todas las sucursales, gestión de administradores, impuestos, configuración general y modo de inventario. |
-| **Administrador de Sucursal** | `admin.centro@sigr.test` | `password` | Operación completa de la Sede Centro (menú, compras, inventario, pedidos, caja, arqueos, reservas e informes). |
-| **Administrador de Sucursal** | `admin.norte@sigr.test` | `password` | Operación completa de la Sede Norte (aislamiento multi-tenant estricto respecto a Centro). |
-| **Mesero** | `mesero.centro@sigr.test` | `password` | Toma ágil de comandas, asignación de mesas en vivo, consulta de pedidos en curso y solicitud de cancelación. |
-| **Cliente Registrado** | `cliente@sigr.test` | `password` | Historial de pedidos en vivo, consulta y descarga de comprobantes FAC, reenvío a correos contables y reservas activas. |
-
----
-
-## ⚙️ Variables de Entorno Clave (`.env`)
-
-```ini
-APP_NAME="SIGR"
-APP_ENV=local
-APP_KEY=base64:...
-APP_DEBUG=true
-APP_TIMEZONE=UTC
-APP_URL=http://localhost:8000
-
-# Conexión principal de base de datos
+# 2. Configurar .env para MySQL (ya configurado)
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
@@ -87,12 +59,87 @@ DB_DATABASE=sigr
 DB_USERNAME=root
 DB_PASSWORD=
 
+# 3. Ejecutar migraciones y semilleros en MySQL
+php artisan migrate:fresh --seed
+
+# 4. Iniciar el servidor local
+php artisan serve
+```
+
+---
+
+#### B.2. Conexión SQLite (Autocontenida / Sin requerir XAMPP)
+Ideal para desarrollo ligero y portable sin necesidad de iniciar servicios de MySQL. También es el motor predeterminado usado por la suite de pruebas automatizadas en memoria (`:memory:`).
+
+**Datos de Conexión de Prueba en SQLite:**
+- **Controlador:** `sqlite`
+- **Archivo Físico:** `database/database.sqlite` (626 KB con todos los seeders cargados)
+- **Ruta Absoluta:** `C:\xampp\htdocs\SIGR\database\database.sqlite`
+
+Para alternar a SQLite, modifica temporalmente tu archivo `.env`:
+```ini
+DB_CONNECTION=sqlite
+# DB_HOST=127.0.0.1
+# DB_PORT=3306
+# DB_DATABASE=sigr
+# DB_USERNAME=root
+# DB_PASSWORD=
+```
+
+Y ejecuta:
+```bash
+# Si el archivo no existe, crearlo
+touch database/database.sqlite
+
+# Migrar y sembrar en SQLite
+php artisan migrate:fresh --seed
+```
+
+---
+
+## 🔑 Cuentas de Acceso de Prueba (Seeders)
+
+Todos los usuarios de prueba creados por los seeders oficiales (`RolesYPermisosSeeder`, `DatabaseSeeder`, `OperacionSeeder`, `ReservaSeeder`) se encuentran registrados tanto en **MySQL** como en **SQLite**. La contraseña predeterminada para todos ellos es: **`password`**.
+
+| Rol | Correo Electrónico Principal | Correo Alternativo / Alias | Contraseña | Alcance / Permisos |
+| :--- | :--- | :--- | :--- | :--- |
+| **Super Administrador** | `superadmin@sigr.test` | — | `password` | Acceso global a todas las sedes, gestión de administradores, impuestos, configuración general e inventario. |
+| **Administrador Sede Centro** | `admin.centro@sigr.test` | `admin@sigr.test` | `password` | Operación completa de la Sede Centro (menú, compras, kárdex, pedidos, turnos de caja, arqueos, reservas e informes). |
+| **Administrador Sede Norte** | `admin.norte@sigr.test` | — | `password` | Operación completa de la Sede Norte (aislamiento multi-tenant estricto respecto a Centro, bloqueo 403 cruzado). |
+| **Mesero Sede Centro** | `mesero.centro@sigr.test` | `mesero@sigr.test` | `password` | Toma ágil de comandas, cambio de mesa, mapa de salón en vivo, consulta de órdenes y solicitud de cancelación. |
+| **Cliente Registrado (Pedidos)** | `cliente@sigr.test` | — | `password` | Historial de pedidos en vivo, descarga de comprobantes FAC en tirilla 80 mm, reenvío contable y reservas activas. |
+| **Cliente Registrado (Voluntario)** | `registrado@sigr.test` | — | `password` | Cliente con auto-registro voluntario desde Home, verificación de email activa y consentimiento explícito de Ley 1581 (SC-01). |
+
+---
+
+## ⚙️ Variables de Entorno Clave (`.env`)
+
+### Configuración Activa (MySQL de XAMPP):
+```ini
+APP_NAME="SIGR"
+APP_ENV=local
+APP_KEY=base64:y7fZ5gT+Fbw78yDBEjTvjRPNmALHLKyIDQWcBfemKAw=
+APP_DEBUG=true
+APP_TIMEZONE=UTC
+APP_URL=http://localhost:8000
+
+# Conexión principal de base de datos MySQL (Activa)
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=sigr
+DB_USERNAME=root
+DB_PASSWORD=
+
+# Alternativa SQLite (Comentada):
+# DB_CONNECTION=sqlite
+
 # Conexión dedicada para auditoría inmutable (RN-GEN-07, DE-12)
 DB_AUDIT_HOST=127.0.0.1
 DB_AUDIT_PORT=3306
 DB_AUDIT_DATABASE=sigr
-DB_AUDIT_USERNAME=sigr_audit
-DB_AUDIT_PASSWORD=tu_clave_segura
+DB_AUDIT_USERNAME=root
+DB_AUDIT_PASSWORD=
 
 # Colas y Caché
 QUEUE_CONNECTION=redis
