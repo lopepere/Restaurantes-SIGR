@@ -221,6 +221,7 @@ const sucursalNombre = computed(() => {
 function cambiarSucursal(id) {
     router.post('/admin/seleccionar-sucursal', { sucursal_id: id }, {
         preserveScroll: true,
+        preserveState: false,
     });
 }
 

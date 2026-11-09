@@ -151,6 +151,18 @@ Route::middleware(['auth', 'role:admin|super_admin'])->prefix('admin')->name('ad
         $id = ($val === 'todas') ? 'todas' : (int) $val;
         session(['sucursal_id' => $id, 'sucursal_activa_id' => $id]);
 
+        $previousUrl = url()->previous();
+        $parsed = parse_url($previousUrl);
+        if (! empty($parsed['query'])) {
+            parse_str($parsed['query'], $queryParams);
+            if (array_key_exists('sucursal_id', $queryParams)) {
+                unset($queryParams['sucursal_id']);
+                $cleanPath = ($parsed['path'] ?? '/admin').(count($queryParams) ? '?'.http_build_query($queryParams) : '');
+
+                return redirect($cleanPath)->with('success', 'Sucursal activa seleccionada.');
+            }
+        }
+
         return back()->with('success', 'Sucursal activa seleccionada.');
     })->name('seleccionar-sucursal');
 

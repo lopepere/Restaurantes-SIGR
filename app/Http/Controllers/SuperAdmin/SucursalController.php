@@ -43,8 +43,8 @@ class SucursalController extends Controller
 
         $todasSucursales = Sucursal::orderBy('nombre')->get(['id', 'nombre', 'activa']);
 
-        // Determinar la sede activa actual del SuperAdmin
-        $rawActiva = $request->input('sucursal_id', session('sucursal_activa_id', session('sucursal_id')));
+        // Determinar la sede activa actual del SuperAdmin desde la sesión del menú izquierdo
+        $rawActiva = session('sucursal_activa_id', session('sucursal_id', $request->input('sucursal_id')));
         $primeraSucursal = $todasSucursales->first();
         $primeraId = $primeraSucursal ? $primeraSucursal->id : 1;
         $sucursalActivaId = (is_numeric($rawActiva) && (int) $rawActiva > 0) ? (int) $rawActiva : $primeraId;

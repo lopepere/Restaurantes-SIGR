@@ -23,7 +23,7 @@
                 <div class="px-6 py-4 border-b border-stone-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-stone-50/60">
                     <div>
                         <h2 class="text-sm font-black text-stone-900">Directorio de Sedes del Restaurante</h2>
-                        <p class="text-[11px] text-stone-500">Edita la información de cualquier sede, habilítala o deshabilítala, o selecciónala para configurar sus cajas y cocina.</p>
+                        <p class="text-[11px] text-stone-500">Edita la información de cualquier sede, sus modalidades de pedido, o habilítala y deshabilítala.</p>
                     </div>
                     <form @submit.prevent="filtrarSucursales" class="flex items-center gap-2">
                         <input
@@ -125,14 +125,6 @@
                                     <div class="flex items-center justify-end gap-2 flex-wrap">
                                         <button
                                             type="button"
-                                            @click="seleccionarSedeParaGestion(sucursal.id)"
-                                            :class="sucursalActiva?.id === sucursal.id ? 'bg-amber-600 text-white' : 'bg-stone-100 hover:bg-stone-200 text-stone-700'"
-                                            class="px-2.5 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer"
-                                        >
-                                            ⚙️ Cajas / Cocina
-                                        </button>
-                                        <button
-                                            type="button"
                                             @click="abrirModalEditarSucursal(sucursal)"
                                             class="px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs border border-blue-200 transition cursor-pointer"
                                         >
@@ -179,16 +171,9 @@
                     </div>
 
                     <div class="flex items-center gap-2">
-                        <label class="text-xs font-bold text-stone-300">Cambiar Sede Activa:</label>
-                        <select
-                            :value="sucursalActiva.id"
-                            @change="seleccionarSedeParaGestion(Number($event.target.value))"
-                            class="rounded-xl bg-stone-800 border border-stone-700 text-amber-300 px-3 py-1.5 text-xs font-bold"
-                        >
-                            <option v-for="s in todasSucursales" :key="s.id" :value="s.id">
-                                {{ s.nombre }} {{ s.activa ? '' : '(Inactiva)' }}
-                            </option>
-                        </select>
+                        <span class="px-3 py-1.5 rounded-xl bg-stone-800 border border-stone-700 text-amber-300 text-[11px] font-bold">
+                            📍 Sede seleccionada desde el menú izquierdo («Sucursal Activa»)
+                        </span>
                     </div>
                 </div>
 
@@ -812,7 +797,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
 
@@ -850,15 +835,6 @@ const form = useForm({
 
 function filtrarSucursales() {
     router.get('/superadmin/sucursales', { buscar: terminoBuscar.value }, { preserveState: true });
-}
-
-function seleccionarSedeParaGestion(sucursalId) {
-    router.post('/admin/seleccionar-sucursal', { sucursal_id: sucursalId }, {
-        preserveScroll: true,
-        onSuccess: () => {
-            router.get('/superadmin/sucursales', { sucursal_id: sucursalId }, { preserveScroll: true });
-        },
-    });
 }
 
 function abrirModalCrearSucursal() {
@@ -1078,4 +1054,15 @@ function guardarUsuarioOperativo() {
         });
     }
 }
+// Sincronizar formularios cuando cambie la Sucursal Activa desde el menú izquierdo
+watch(
+    () => props.sucursalActiva?.id,
+    (nuevoId) => {
+        formBase.sucursal_id = nuevoId || null;
+        formBase.caja_id = props.cajasSede[0]?.id || null;
+        formCaja.sucursal_id = nuevoId || null;
+        formCocina.sucursal_id = nuevoId || null;
+        formUsuario.sucursal_id = nuevoId || null;
+    }
+);
 </script>
