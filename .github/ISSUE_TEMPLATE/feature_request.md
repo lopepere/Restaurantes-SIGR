@@ -18,3 +18,4 @@ Cualquier solución o característica alternativa que hayas evaluado.
 ### Contexto Adicional
 Cualquier otro detalle, mockups o capturas de referencia.
 *(Nota: Toda mejora requiere evaluación previa antes de implementarse para no desviarse de la línea base).*
+

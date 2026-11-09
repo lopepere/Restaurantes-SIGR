@@ -29,3 +29,4 @@ assignees: ''
 - **Esfuerzo estimado en horas**:
 - **Riesgo y estrategia de mitigación**:
 - **Estado de Aprobación**: [Pendiente / Aprobada / Rechazada]
+

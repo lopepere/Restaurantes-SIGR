@@ -59,3 +59,4 @@ import { ref } from 'vue';
 
 const sucursalNombre = ref('Sede Centro');
 </script>
+

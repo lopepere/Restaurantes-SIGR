@@ -42,9 +42,9 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user ? [
                     'id' => $user->id,
-                    'name' => $user->name,
+                    'name' => $user->nombre,
                     'email' => $user->email,
-                    'roles' => method_exists($user, 'getRoleNames') ? $user->getRoleNames() : [],
+                    'roles' => $user->getRoleNames(),
                 ] : null,
             ],
             'flash' => [

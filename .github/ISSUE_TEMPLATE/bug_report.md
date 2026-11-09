@@ -30,3 +30,4 @@ Si aplica, adjunta capturas de pantalla o traza de errores (`storage/logs/larave
 - **Navegador**: [ej. Chrome 124, Safari 17]
 - **Rol de Usuario**: [Visitante, Cliente, Mesero, Admin, SuperAdmin]
 - **Sucursal**: [ej. Sede Centro]
+

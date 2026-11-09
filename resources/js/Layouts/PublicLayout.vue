@@ -149,3 +149,4 @@ function toggleCarrito() {
     window.dispatchEvent(new CustomEvent('toggle-carrito'));
 }
 </script>
+

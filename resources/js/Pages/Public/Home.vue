@@ -91,3 +91,4 @@
 <script setup>
 import PublicLayout from '@/Layouts/PublicLayout.vue';
 </script>
+

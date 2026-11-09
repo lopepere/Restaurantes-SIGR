@@ -86,3 +86,4 @@ import { ref } from 'vue';
 
 const sucursalSeleccionada = ref('todas');
 </script>
+
