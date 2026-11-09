@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             SucursalSeeder::class,
             ConfiguracionSeeder::class,
             UserSeeder::class,
+            MenuSeeder::class,
         ]);
     }
 }

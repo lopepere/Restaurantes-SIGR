@@ -2,27 +2,28 @@
 
 use App\Http\Controllers\Admin\BitacoraController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\MeseroController;
 use App\Http\Controllers\Admin\PapeleraController;
+use App\Http\Controllers\Admin\PromocionController;
 use App\Http\Controllers\Auth\InvitacionController;
 use App\Http\Controllers\Auth\RegistroController;
 use App\Http\Controllers\Cliente\DashboardController as ClienteDashboardController;
 use App\Http\Controllers\Cliente\PerfilController;
 use App\Http\Controllers\Mesero\DashboardController as MeseroDashboardController;
+use App\Http\Controllers\Public\HomeController;
 use App\Http\Controllers\SuperAdmin\AdministradorController;
 use App\Http\Controllers\SuperAdmin\DashboardController as SuperAdminDashboardController;
 use App\Http\Controllers\SuperAdmin\SucursalController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 /*
 |--------------------------------------------------------------------------
 | Rutas Públicas (Visitante)
 |--------------------------------------------------------------------------
 */
-Route::get('/', function () {
-    return Inertia::render('Public/Home');
-})->name('home');
+Route::get('/', HomeController::class)->name('home');
+Route::get('/sucursal/{slug}', HomeController::class)->name('home.sucursal');
 
 // Registro voluntario desde el home (RF-USR-14, SC-01)
 Route::get('/registro', [RegistroController::class, 'create'])->name('registro');
@@ -66,6 +67,23 @@ Route::middleware(['auth', 'role:admin|super_admin'])->prefix('admin')->name('ad
     Route::post('/meseros', [MeseroController::class, 'store'])->name('meseros.store');
     Route::put('/meseros/{mesero}', [MeseroController::class, 'update'])->name('meseros.update');
     Route::delete('/meseros/{mesero}', [MeseroController::class, 'destroy'])->name('meseros.destroy');
+
+    // Gestión del Menú y Combos (RF-MEN-01..11)
+    Route::get('/menu', [MenuController::class, 'index'])->name('menu.index');
+    Route::post('/menu/categorias', [MenuController::class, 'storeCategoria'])->name('menu.categorias.store');
+    Route::put('/menu/categorias/{categoria}', [MenuController::class, 'updateCategoria'])->name('menu.categorias.update');
+    Route::delete('/menu/categorias/{categoria}', [MenuController::class, 'destroyCategoria'])->name('menu.categorias.destroy');
+    Route::post('/menu/items', [MenuController::class, 'storeItem'])->name('menu.items.store');
+    Route::put('/menu/items/{itemMenu}', [MenuController::class, 'updateItem'])->name('menu.items.update');
+    Route::delete('/menu/items/{itemMenu}', [MenuController::class, 'destroyItem'])->name('menu.items.destroy');
+    Route::post('/menu/items/{itemMenu}/disponibilidad', [MenuController::class, 'toggleDisponibilidad'])->name('menu.items.toggle');
+    Route::post('/menu/copiar', [MenuController::class, 'copiarMenu'])->name('menu.copiar');
+
+    // Gestión de Promociones (RF-PRO-01..05)
+    Route::get('/promociones', [PromocionController::class, 'index'])->name('promociones.index');
+    Route::post('/promociones', [PromocionController::class, 'store'])->name('promociones.store');
+    Route::put('/promociones/{promocion}', [PromocionController::class, 'update'])->name('promociones.update');
+    Route::delete('/promociones/{promocion}', [PromocionController::class, 'destroy'])->name('promociones.destroy');
 
     // Bitácora de Auditoría de solo lectura (RF-AUD-02, 03, CA-19)
     Route::get('/bitacora', [BitacoraController::class, 'index'])->name('bitacora.index');

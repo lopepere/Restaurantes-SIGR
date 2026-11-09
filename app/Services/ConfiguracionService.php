@@ -40,6 +40,14 @@ class ConfiguracionService
     }
 
     /**
+     * Alias de get() en español para consistencia lingüística.
+     */
+    public static function obtener(string $clave, int|Sucursal|null $sucursal = null, mixed $default = null): mixed
+    {
+        return self::get($clave, $sucursal, $default);
+    }
+
+    /**
      * Guarda o actualiza una configuración a nivel de sucursal o global, invalidando la caché.
      */
     public static function set(string $clave, mixed $valor, int|Sucursal|null $sucursal = null): Configuracion

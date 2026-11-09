@@ -36,8 +36,22 @@ trait BelongsToSucursal
         });
     }
 
+    /**
+     * @return BelongsTo<Sucursal, $this>
+     */
     public function sucursal(): BelongsTo
     {
         return $this->belongsTo(Sucursal::class, 'sucursal_id');
+    }
+
+    /**
+     * Scope para consultar registros de una sucursal específica sin interferencia del global scope.
+     *
+     * @param  Builder<$this>  $query
+     * @return Builder<$this>
+     */
+    public function scopeParaSucursal(Builder $query, int $sucursalId): Builder
+    {
+        return $query->withoutGlobalScope('sucursal')->where($this->getTable().'.sucursal_id', $sucursalId);
     }
 }

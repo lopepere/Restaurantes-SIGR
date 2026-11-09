@@ -6,6 +6,4 @@ parameters:
         - app
         - bootstrap
     level: 6
-    ignoreErrors:
-        - identifier: trait.unused
 

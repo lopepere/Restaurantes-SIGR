@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Categoria;
+use App\Models\ItemMenu;
+use App\Models\Promocion;
 use App\Models\Sucursal;
 use App\Models\User;
 use App\Services\PapeleraService;
@@ -22,6 +25,9 @@ class PapeleraController extends Controller
     protected array $modelosPermitidos = [
         'meseros' => User::class,
         'sucursales' => Sucursal::class,
+        'categorias' => Categoria::class,
+        'items_menu' => ItemMenu::class,
+        'promociones' => Promocion::class,
     ];
 
     public function index(Request $request): Response

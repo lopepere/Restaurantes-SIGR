@@ -6,6 +6,41 @@ Todos los cambios notables de este proyecto serán documentados en este archivo 
 
 ## [Sin publicar]
 
+### Añadido (Iteración I-2 · Menú, promociones y sitio público) [LB-01]
+- **Migraciones de Base de Datos**:
+  - `categorias`: gestión por sucursal con `slug`, `orden`, `icono`, `activa` y borrado lógico `deleted_at`.
+  - `items_menu`: catálogo de platillos con `precio` (decimal 14,2), desglose tributario (`impuesto_tipo`, `impuesto_porcentaje` con valor por defecto 8% INC según normativa colombiana), flag de combo `es_combo`, control de existencias (`controla_inventario`, `existencia`, `existencia_minima`), disponibilidad operativa `disponible` y estado `activo`.
+  - `combo_items`: vinculación de ítems integrantes de combos con cantidad requerida y restricción en cascada.
+  - `promociones`: campañas temporales con tipo de beneficio (`porcentaje`, `monto_fijo`, `dos_por_uno`), ventana de vigencia por fechas (`fecha_inicio`, `fecha_fin`), días de la semana y franja horaria (`hora_inicio`, `hora_fin`), estado de publicación y alcance global o específico.
+  - `promocion_item` y `promocion_categoria`: tablas pivote para focalizar promociones por productos o categorías concretas.
+- **Modelos, Observadores y Enums de Dominio**:
+  - `App\Models\Categoria`, `App\Models\ItemMenu`, `App\Models\ComboItem`, `App\Models\Promocion`: equipados con `Auditable`, `BelongsToSucursal` y `SoftDeletes`.
+  - `App\Observers\SucursalObserver`: aprovisionamiento automático de las 4 categorías obligatorias al crear una sede («Entradas», «Platos Fuertes», «Bebidas», «Postres») según DE-07 y RF-MEN-01.
+  - Métodos de negocio en modelos: `ItemMenu::estaAgotado()`, `Promocion::estaVigente()`, `Promocion::calcularPrecioPromocional()`.
+- **Servicios, Acciones y Tareas Programadas**:
+  - `App\Services\MenuService`: motor de resolución del menú público con cálculo reactivo de precios promocionales, desglose impositivo y soporte de directiva de inventario `menu.productos_agotados` (`gris` vs `ocultar` según CA-26).
+  - `App\Actions\Menu\CopiarMenuAction`: duplicación integral de estructura de categorías, platillos y recetas de combos entre sedes bajo transacción atómica (RF-MEN-09, CA-25).
+  - `App\Jobs\PublicarPromocionesJob`: job programado por minuto para activar/desactivar vigencias de promociones y disparar eventos WebSocket (DE-09, CA-20, RF-PRO-04).
+- **Eventos y Canales WebSockets (Laravel Reverb)**:
+  - `App\Events\MenuActualizado`: difusión pública en canal `menu.{sucursalId}` para recarga instantánea del catálogo en clientes conectados.
+  - `App\Events\PromocionPublicada` y `App\Events\PromocionRetirada`: notificación en tiempo real de activación/retiro de ofertas.
+- **Políticas de Autorización y Controladores**:
+  - `App\Policies\CategoriaPolicy`, `App\Policies\ItemMenuPolicy`, `App\Policies\PromocionPolicy`.
+  - `App\Http\Controllers\Public\HomeController`: catálogo público por slug de sede con resolución de sede activa o por defecto.
+  - `App\Http\Controllers\Admin\MenuController`: gestión integral de categorías, ítems, combos, conmutación rápida de disponibilidad y acción de copiado entre sedes.
+  - `App\Http\Controllers\Admin\PromocionController`: administración de campañas promocionales.
+  - Extensión de `App\Http\Controllers\Admin\PapeleraController` para admitir restauración de categorías, ítems y promociones borrados lógicamente.
+- **Frontend Inertia.js (Vue 3 + Tailwind CSS 4)**:
+  - `resources/js/Pages/Public/Home.vue`: sitio público responsive con selector de sucursal, carrusel de promociones activas, pestañas de categorías, buscador instantáneo, tarjetas con distinción visual de agotados, carrito flotante con icono de campanita de servicio de restaurante, selector de propina voluntaria (SC-02: ninguna, 5%, 10%, personalizada) y oyente Echo en tiempo real.
+  - `resources/js/Pages/Admin/Menu/Index.vue`: panel de gestión de menú con modales de creación/edición, badges de estado e interfaz para clonar menú desde otra sucursal.
+  - `resources/js/Pages/Admin/Promociones/Index.vue`: panel de administración de promociones con visualización de vigencias y estados.
+- **Seeders y Datos de Prueba**:
+  - `database/seeders/MenuSeeder.php`: catálogo completo de muestra con 5 entradas, 5 platos fuertes, 5 bebidas, 5 postres, 1 combo («Combo Ejecutivo») y 1 promoción de descuento activa (15%).
+- **Pruebas Automatizadas (Pest)**:
+  - `tests/Feature/Menu/MenuTest.php`: creación de categorías automáticas, clonación atómica de menú entre sedes y publicación periódica de promociones.
+  - `tests/Feature/Public/HomePublicaTest.php`: renderizado de menú, filtrado por sede, cálculo de precios promocionales y política de visualización de productos agotados (`gris` vs `ocultar`).
+  - Suite completa: 44 pruebas, 217 aserciones, 100% exitosas.
+
 ### Añadido (Iteración I-1 · Núcleo: sucursales, usuarios, auditoría y papelera) [LB-01]
 - **Migraciones de Base de Datos**:
   - `users`: soporte de `nombre`, `email`, `telefono` (E.164), `direccion`, `avatar` (SVG local), `idioma`, `activo`, `origen` (`OrigenUsuario`), campos de invitación firmada (`invitacion_token`, `invitacion_enviada_at`, `invitacion_aceptada_at`), `politica_aceptada_at` (Ley 1581) y `deleted_at`.
