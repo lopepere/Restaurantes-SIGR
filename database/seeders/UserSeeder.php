@@ -57,7 +57,6 @@ class UserSeeder extends Seeder
             );
             if ($sucursalCentro) {
                 $admin->sucursales()->syncWithoutDetaching([$sucursalCentro->id]);
-                setPermissionsTeamId($sucursalCentro->id);
                 $admin->assignRole('admin');
             }
         }
@@ -80,7 +79,6 @@ class UserSeeder extends Seeder
                 ]
             );
             $adminNorte->sucursales()->syncWithoutDetaching([$sucursalNorte->id]);
-            setPermissionsTeamId($sucursalNorte->id);
             $adminNorte->assignRole('admin');
         }
 
@@ -107,7 +105,6 @@ class UserSeeder extends Seeder
             );
             if ($sucursalCentro) {
                 $mesero->sucursales()->syncWithoutDetaching([$sucursalCentro->id]);
-                setPermissionsTeamId($sucursalCentro->id);
                 $mesero->assignRole('mesero');
             }
         }

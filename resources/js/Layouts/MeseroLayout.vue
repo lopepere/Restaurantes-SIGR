@@ -19,11 +19,9 @@
                         <span>➕</span>
                         <span>Nueva Comanda</span>
                     </a>
-                    <form method="POST" action="/logout">
-                        <button type="submit" class="text-xs text-stone-400 hover:text-white transition">
-                            Salir
-                        </button>
-                    </form>
+                    <button type="button" @click="logout" class="text-xs text-stone-400 hover:text-white transition cursor-pointer">
+                        Salir 🚪
+                    </button>
                 </div>
             </div>
         </header>
@@ -56,7 +54,12 @@
 
 <script setup>
 import { ref } from 'vue';
+import { router } from '@inertiajs/vue3';
 
 const sucursalNombre = ref('Sede Centro');
+
+function logout() {
+    router.post('/logout');
+}
 </script>
 

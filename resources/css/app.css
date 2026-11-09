@@ -8,3 +8,70 @@
 @theme {
     --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
 }
+
+/* Transiciones suaves entre vistas y contenidos */
+main {
+    animation: fadeInPage 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInPage {
+    from {
+        opacity: 0.7;
+        transform: translateY(2px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Indicador de carga superior y spinner (Inertia Progress) */
+#nprogress {
+    pointer-events: none;
+}
+
+#nprogress .bar {
+    background: #ea580c !important;
+    position: fixed;
+    z-index: 9999;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px !important;
+    box-shadow: 0 0 12px #ea580c, 0 0 6px #f97316;
+}
+
+#nprogress .peg {
+    display: block;
+    position: absolute;
+    right: 0px;
+    width: 100px;
+    height: 100%;
+    box-shadow: 0 0 10px #ea580c, 0 0 5px #ea580c;
+    opacity: 1;
+    transform: rotate(3deg) translate(0px, -4px);
+}
+
+#nprogress .spinner {
+    display: block;
+    position: fixed;
+    z-index: 9999;
+    top: 18px;
+    right: 18px;
+}
+
+#nprogress .spinner-icon {
+    width: 20px;
+    height: 20px;
+    box-sizing: border-box;
+    border: solid 2.5px transparent;
+    border-top-color: #ea580c;
+    border-left-color: #ea580c;
+    border-radius: 50%;
+    animation: nprogress-spinner 400ms linear infinite;
+}
+
+@keyframes nprogress-spinner {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

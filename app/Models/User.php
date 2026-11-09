@@ -167,4 +167,24 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasMany(SesionCaja::class, 'user_id');
     }
+
+    /**
+     * Retorna la URL del dashboard correspondiente al rol principal del usuario.
+     */
+    public function dashboardUrl(): string
+    {
+        if ($this->hasRole('super_admin')) {
+            return '/superadmin';
+        }
+
+        if ($this->hasRole('admin')) {
+            return '/admin';
+        }
+
+        if ($this->hasRole('mesero')) {
+            return '/mesero';
+        }
+
+        return '/cliente';
+    }
 }

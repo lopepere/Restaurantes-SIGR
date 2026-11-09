@@ -118,8 +118,11 @@
 </template>
 
 <script setup>
-import { useForm } from '@inertiajs/vue3';
+import { onMounted } from 'vue';
+import { useForm, usePage, router } from '@inertiajs/vue3';
 import PublicLayout from '@/Layouts/PublicLayout.vue';
+
+const page = usePage();
 
 const form = useForm({
     nombre: '',
@@ -129,6 +132,20 @@ const form = useForm({
     password: '',
     password_confirmation: '',
     politica_aceptada: false,
+});
+
+onMounted(() => {
+    // Si ya existe sesión activa, no permitir ver registro
+    if (page.props.auth?.user) {
+        router.visit(page.props.auth.user.dashboard_url || '/');
+    }
+
+    // Manejar caché de historial del navegador (bfcache)
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted && page.props.auth?.user) {
+            router.visit(page.props.auth.user.dashboard_url || '/');
+        }
+    });
 });
 
 function submit() {

@@ -71,11 +71,9 @@
 
             <div class="p-4 border-t border-stone-800 flex items-center justify-between text-xs">
                 <span class="text-stone-400 truncate">{{ $page.props.auth?.user?.name }}</span>
-                <form method="POST" action="/logout">
-                    <button type="submit" class="text-orange-400 hover:text-orange-300 font-semibold transition">
-                        Salir
-                    </button>
-                </form>
+                <button type="button" @click="logout" class="text-orange-400 hover:text-orange-300 font-semibold transition cursor-pointer">
+                    Salir 🚪
+                </button>
             </div>
         </aside>
 
@@ -87,11 +85,9 @@
                     <span class="text-xl">👨‍💼</span>
                     <span class="font-bold text-stone-900">SIGR Admin</span>
                 </div>
-                <form method="POST" action="/logout">
-                    <button type="submit" class="text-xs font-semibold text-stone-600 hover:text-stone-900">
-                        Cerrar sesión
-                    </button>
-                </form>
+                <button type="button" @click="logout" class="text-xs font-semibold text-stone-600 hover:text-stone-900 cursor-pointer">
+                    Cerrar sesión
+                </button>
             </header>
 
             <main class="p-6 max-w-7xl w-full mx-auto flex-1">
@@ -103,7 +99,12 @@
 
 <script setup>
 import { ref } from 'vue';
+import { router } from '@inertiajs/vue3';
 
 const sucursalNombre = ref('Sede Centro');
+
+function logout() {
+    router.post('/logout');
+}
 </script>
 

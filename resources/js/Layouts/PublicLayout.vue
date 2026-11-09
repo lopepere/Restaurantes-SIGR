@@ -33,14 +33,23 @@
                 </nav>
 
                 <!-- Acciones de Usuario -->
-                <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-2 sm:space-x-3">
                     <template v-if="$page.props.auth?.user">
                         <a
                             :href="dashboardUrl"
-                            class="text-xs sm:text-sm font-medium text-stone-700 hover:text-orange-600 px-3 py-1.5 rounded-lg border border-stone-200 bg-stone-50 transition"
+                            class="text-xs sm:text-sm font-semibold text-stone-700 hover:text-orange-600 px-3 py-1.5 rounded-lg border border-stone-200 bg-stone-50 hover:bg-white shadow-2xs transition"
                         >
                             Mi Panel ({{ $page.props.auth.user.name }})
                         </a>
+                        <button
+                            type="button"
+                            @click="cerrarSesion"
+                            class="text-xs sm:text-sm font-medium text-stone-500 hover:text-rose-600 px-2.5 py-1.5 rounded-lg border border-transparent hover:border-rose-200 hover:bg-rose-50 transition flex items-center space-x-1"
+                            title="Cerrar sesión actual"
+                        >
+                            <span>Salir</span>
+                            <span class="text-xs">🚪</span>
+                        </button>
                     </template>
                     <template v-else>
                         <a
@@ -129,7 +138,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { usePage } from '@inertiajs/vue3';
+import { usePage, router } from '@inertiajs/vue3';
 import RestaurantBellIcon from '@/Components/UI/RestaurantBellIcon.vue';
 
 const page = usePage();
@@ -137,12 +146,12 @@ const itemsCount = ref(0);
 const sucursalNombre = ref('Sede Centro');
 
 const dashboardUrl = computed(() => {
-    const roles = page.props.auth?.user?.roles || [];
-    if (roles.includes('super_admin')) return '/superadmin';
-    if (roles.includes('admin')) return '/admin';
-    if (roles.includes('mesero')) return '/mesero';
-    return '/cliente';
+    return page.props.auth?.user?.dashboard_url || '/cliente';
 });
+
+function cerrarSesion() {
+    router.post('/logout');
+}
 
 function toggleCarrito() {
     // Evento para abrir el carrito/pedido flotante

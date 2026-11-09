@@ -26,18 +26,6 @@ class LoginResponse implements LoginResponseContract
             session(['sucursal_id' => $sucursales[0]]);
         }
 
-        if ($user->hasRole('super_admin')) {
-            return redirect()->intended('/superadmin');
-        }
-
-        if ($user->hasRole('admin')) {
-            return redirect()->intended('/admin');
-        }
-
-        if ($user->hasRole('mesero')) {
-            return redirect()->intended('/mesero');
-        }
-
-        return redirect()->intended('/cliente');
+        return redirect()->intended($user->dashboardUrl());
     }
 }

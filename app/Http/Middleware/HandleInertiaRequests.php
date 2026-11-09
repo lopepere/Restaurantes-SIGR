@@ -45,6 +45,7 @@ class HandleInertiaRequests extends Middleware
                     'name' => $user->nombre,
                     'email' => $user->email,
                     'roles' => $user->getRoleNames(),
+                    'dashboard_url' => $user->dashboardUrl(),
                 ] : null,
             ],
             'flash' => [

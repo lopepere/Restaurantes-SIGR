@@ -29,6 +29,7 @@ use App\Http\Controllers\Public\HomeController;
 use App\Http\Controllers\Public\PedidoPublicoController;
 use App\Http\Controllers\Public\ReservaPublicaController;
 use App\Http\Controllers\SuperAdmin\AdministradorController;
+use App\Http\Controllers\SuperAdmin\ConfiguracionController;
 use App\Http\Controllers\SuperAdmin\DashboardController as SuperAdminDashboardController;
 use App\Http\Controllers\SuperAdmin\SucursalController;
 use Illuminate\Support\Facades\Route;
@@ -56,8 +57,10 @@ Route::get('/comprobante/{cuv}/tirilla', [ComprobantePublicoController::class, '
 Route::get('/comprobantes/{cuv}/tirilla', [ComprobantePublicoController::class, 'tirilla'])->name('comprobantes.publico.tirilla.alt');
 
 // Registro voluntario desde el home (RF-USR-14, SC-01)
-Route::get('/registro', [RegistroController::class, 'create'])->name('registro');
-Route::post('/registro', [RegistroController::class, 'store'])->middleware('throttle:6,1')->name('registro.store');
+Route::middleware('guest')->group(function () {
+    Route::get('/registro', [RegistroController::class, 'create'])->name('registro');
+    Route::post('/registro', [RegistroController::class, 'store'])->middleware('throttle:6,1')->name('registro.store');
+});
 
 // Enlace firmado de 72 horas para definir contraseña / activar cuenta (DE-06, RF-USR-03)
 Route::get('/invitacion/aceptar/{user}', [InvitacionController::class, 'show'])->name('invitacion.aceptar');
@@ -219,4 +222,15 @@ Route::middleware(['auth', 'role:super_admin'])->prefix('superadmin')->name('sup
     Route::post('/sucursales', [SucursalController::class, 'store'])->name('sucursales.store');
     Route::put('/sucursales/{sucursal}', [SucursalController::class, 'update'])->name('sucursales.update');
     Route::delete('/sucursales/{sucursal}', [SucursalController::class, 'destroy'])->name('sucursales.destroy');
+
+    // Parámetros Globales e Impuestos (RF-CFG-02, 03)
+    Route::get('/configuracion', [ConfiguracionController::class, 'index'])->name('configuracion.index');
+    Route::put('/configuracion', [ConfiguracionController::class, 'update'])->name('configuracion.update');
+    Route::get('/impuestos', [ConfiguracionController::class, 'impuestos'])->name('impuestos.index');
+
+    // Plantillas de Correo (Acceso directo desde SuperAdmin)
+    Route::get('/plantillas', [PlantillaCorreoController::class, 'index'])->name('plantillas.index');
+
+    // Informes Consolidados (Acceso directo desde SuperAdmin)
+    Route::get('/informes', [InformeController::class, 'index'])->name('informes.index');
 });

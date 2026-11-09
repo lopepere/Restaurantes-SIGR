@@ -26,14 +26,13 @@
                         <span class="text-xs font-medium text-stone-700 hidden sm:inline">{{ $page.props.auth?.user?.name }}</span>
                     </div>
 
-                    <form method="POST" action="/logout">
-                        <button
-                            type="submit"
-                            class="text-xs font-semibold text-stone-500 hover:text-stone-900 px-2 py-1 rounded-md transition"
-                        >
-                            Cerrar sesión
-                        </button>
-                    </form>
+                    <button
+                        type="button"
+                        @click="logout"
+                        class="text-xs font-semibold text-stone-500 hover:text-stone-900 px-2 py-1 rounded-md transition cursor-pointer"
+                    >
+                        Cerrar sesión 🚪
+                    </button>
                 </div>
             </div>
         </header>
@@ -53,9 +52,13 @@
 
 <script setup>
 import { computed } from 'vue';
-import { usePage } from '@inertiajs/vue3';
+import { usePage, router } from '@inertiajs/vue3';
 
 const page = usePage();
+
+function logout() {
+    router.post('/logout');
+}
 
 const inicialesUsuario = computed(() => {
     const nombre = page.props.auth?.user?.name || 'Cliente';
