@@ -9,9 +9,9 @@
                         🍽️
                     </div>
                     <div>
-                        <a href="/" class="text-xl font-bold tracking-tight text-stone-900 hover:text-orange-600 transition">
+                        <Link href="/" class="text-xl font-bold tracking-tight text-stone-900 hover:text-orange-600 transition">
                             SIGR
-                        </a>
+                        </Link>
                         <span class="hidden sm:inline-block ml-2 text-xs font-medium text-stone-500 bg-stone-100 px-2 py-0.5 rounded-full">
                             Restaurante
                         </span>
@@ -20,10 +20,10 @@
 
                 <!-- Selector de Sucursal y Enlaces Centrales -->
                 <nav class="hidden md:flex items-center space-x-6 text-sm font-medium">
-                    <a href="/" class="text-stone-700 hover:text-orange-600 transition">Inicio</a>
+                    <Link href="/" class="text-stone-700 hover:text-orange-600 transition">Inicio</Link>
                     <a href="/#menu" class="text-stone-700 hover:text-orange-600 transition">Menú</a>
                     <a href="/#promociones" class="text-stone-700 hover:text-orange-600 transition">Promociones</a>
-                    <a href="/reservar" class="text-stone-700 hover:text-orange-600 transition">Reservar Mesa</a>
+                    <Link href="/reservar" class="text-stone-700 hover:text-orange-600 transition">Reservar Mesa</Link>
 
                     <!-- Indicador de Sucursal activa -->
                     <div class="flex items-center space-x-1.5 bg-stone-100 px-3 py-1.5 rounded-lg border border-stone-200 text-stone-700 text-xs">
@@ -35,16 +35,16 @@
                 <!-- Acciones de Usuario -->
                 <div class="flex items-center space-x-2 sm:space-x-3">
                     <template v-if="$page.props.auth?.user">
-                        <a
+                        <Link
                             :href="dashboardUrl"
                             class="text-xs sm:text-sm font-semibold text-stone-700 hover:text-orange-600 px-3 py-1.5 rounded-lg border border-stone-200 bg-stone-50 hover:bg-white shadow-2xs transition"
                         >
                             Mi Panel ({{ $page.props.auth.user.name }})
-                        </a>
+                        </Link>
                         <button
                             type="button"
                             @click="cerrarSesion"
-                            class="text-xs sm:text-sm font-medium text-stone-500 hover:text-rose-600 px-2.5 py-1.5 rounded-lg border border-transparent hover:border-rose-200 hover:bg-rose-50 transition flex items-center space-x-1"
+                            class="text-xs sm:text-sm font-medium text-stone-500 hover:text-rose-600 px-2.5 py-1.5 rounded-lg border border-transparent hover:border-rose-200 hover:bg-rose-50 transition flex items-center space-x-1 cursor-pointer"
                             title="Cerrar sesión actual"
                         >
                             <span>Salir</span>
@@ -52,18 +52,18 @@
                         </button>
                     </template>
                     <template v-else>
-                        <a
+                        <Link
                             href="/login"
                             class="text-xs sm:text-sm font-medium text-stone-700 hover:text-stone-900 px-3 py-1.5 transition"
                         >
                             Ingresar
-                        </a>
-                        <a
+                        </Link>
+                        <Link
                             href="/registro"
                             class="text-xs sm:text-sm font-semibold bg-orange-600 hover:bg-orange-700 text-white px-3.5 py-1.5 rounded-lg shadow-xs transition"
                         >
                             Registrarse
-                        </a>
+                        </Link>
                     </template>
                 </div>
             </div>
@@ -81,25 +81,41 @@
             </div>
         </div>
 
-        <!-- Contenido principal -->
+        <!-- Contenido principal con transición suave -->
         <main class="flex-1">
             <slot />
         </main>
 
-        <!-- Botón flotante de pedido con icono de campanita de restaurante -->
+        <!-- Botón flotante de pedido con icono de campanita de restaurante y efecto animado llamativo -->
         <div class="fixed bottom-6 right-6 z-50">
+            <!-- Aura pulsante de luz cuando hay ítems elegidos -->
+            <span
+                v-if="itemsCount > 0"
+                class="absolute -inset-2 rounded-full bg-orange-500/30 blur-md animate-pulse pointer-events-none"
+            ></span>
+            <span
+                v-if="itemsCount > 0"
+                class="absolute inset-0 rounded-full bg-amber-400 opacity-60 animate-ping pointer-events-none"
+            ></span>
+
             <button
                 type="button"
                 @click="toggleCarrito"
-                class="relative bg-orange-600 hover:bg-orange-700 active:scale-95 text-white p-4 rounded-full shadow-xl transition-all duration-200 focus:outline-hidden focus:ring-4 focus:ring-orange-300 flex items-center justify-center group"
+                :class="[
+                    'relative p-4 rounded-full shadow-2xl transition-all duration-300 flex items-center justify-center cursor-pointer group active:scale-95 focus:outline-hidden',
+                    itemsCount > 0
+                        ? 'bg-gradient-to-tr from-orange-600 via-amber-500 to-orange-500 text-white ring-4 ring-amber-300 ring-offset-2 ring-offset-stone-50 animate-bounce'
+                        : 'bg-orange-600 hover:bg-orange-700 text-white hover:shadow-orange-600/30'
+                ]"
                 title="Tu pedido (Campanita de servicio)"
                 aria-label="Ver pedido en curso o carrito"
             >
                 <RestaurantBellIcon class="w-7 h-7 text-white transform group-hover:-rotate-12 transition-transform duration-200" />
+                
                 <!-- Badge con conteo de items del pedido -->
                 <span
                     v-if="itemsCount > 0"
-                    class="absolute -top-1 -right-1 bg-amber-400 text-stone-950 font-extrabold text-xs px-2 py-0.5 rounded-full ring-2 ring-white shadow-xs"
+                    class="absolute -top-1.5 -right-1.5 bg-amber-300 text-stone-950 font-black text-xs px-2.5 py-0.5 rounded-full ring-2 ring-white shadow-md animate-pulse"
                 >
                     {{ itemsCount }}
                 </span>
@@ -137,25 +153,45 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import { usePage, router } from '@inertiajs/vue3';
+import { computed, onMounted } from 'vue';
+import { usePage, router, Link } from '@inertiajs/vue3';
 import RestaurantBellIcon from '@/Components/UI/RestaurantBellIcon.vue';
 
+const props = defineProps({
+    itemsCount: {
+        type: Number,
+        default: 0,
+    },
+    sucursalNombre: {
+        type: String,
+        default: 'Sede Centro',
+    },
+});
+
+const emit = defineEmits(['toggle-carrito']);
 const page = usePage();
-const itemsCount = ref(0);
-const sucursalNombre = ref('Sede Centro');
 
 const dashboardUrl = computed(() => {
     return page.props.auth?.user?.dashboard_url || '/cliente';
 });
 
+onMounted(() => {
+    if (typeof window !== 'undefined' && page.props.auth?.user) {
+        sessionStorage.setItem('sigr_auth_active', '1');
+        sessionStorage.setItem('sigr_dashboard', dashboardUrl.value);
+    }
+});
+
 function cerrarSesion() {
+    if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('sigr_auth_active');
+        sessionStorage.removeItem('sigr_dashboard');
+    }
     router.post('/logout');
 }
 
 function toggleCarrito() {
-    // Evento para abrir el carrito/pedido flotante
+    emit('toggle-carrito');
     window.dispatchEvent(new CustomEvent('toggle-carrito'));
 }
 </script>
-

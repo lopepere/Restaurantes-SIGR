@@ -41,6 +41,13 @@ class PedidoPublicoController extends Controller
             ? (PropinaTipo::tryFrom($validated['propina_tipo']) ?? PropinaTipo::NINGUNA)
             : PropinaTipo::NINGUNA;
 
+        // Impedir que roles de personal administrativo o meseros creen pedidos de clientes desde el home
+        if (auth()->check() && ! auth()->user()->hasRole('cliente')) {
+            return back()->withErrors([
+                'general' => 'Los pedidos desde la carta pública están reservados para clientes o visitantes. Como parte del personal, utiliza tu panel de gestión.',
+            ]);
+        }
+
         $clienteId = auth()->check() && auth()->user()->hasRole('cliente')
             ? auth()->id()
             : null;

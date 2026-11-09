@@ -306,6 +306,92 @@
                         </label>
                     </div>
 
+                    <!-- Sección de Armado de Combo con Selección y Descuento de Inventario -->
+                    <div v-if="formItem.es_combo" class="p-3.5 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-3">
+                        <div class="flex items-center justify-between">
+                            <label class="text-xs font-black uppercase tracking-wider text-purple-900 flex items-center gap-1.5">
+                                <span>🍔🍟</span>
+                                <span>Productos que conforman este Combo</span>
+                            </label>
+                            <span class="text-[10px] text-purple-700 font-bold bg-purple-100 px-2 py-0.5 rounded-full">
+                                {{ (formItem.combo_items || []).length }} asociados
+                            </span>
+                        </div>
+
+                        <!-- Buscador y Selector de Ítems Existentes -->
+                        <div class="space-y-2">
+                            <input
+                                type="text"
+                                v-model="busquedaProductoCombo"
+                                placeholder="🔍 Buscar plato o bebida por nombre..."
+                                class="w-full bg-white border border-purple-200 text-stone-800 text-xs rounded-xl px-3 py-1.5 focus:ring-1 focus:ring-purple-500"
+                            />
+
+                            <div class="flex gap-2 items-center">
+                                <select
+                                    v-model="comboProductoSeleccionadoId"
+                                    class="flex-1 bg-white border border-purple-200 text-stone-800 text-xs rounded-xl p-2 focus:ring-1 focus:ring-purple-500"
+                                >
+                                    <option value="">-- Seleccionar producto existente --</option>
+                                    <option v-for="pi in itemsComboFiltrados" :key="pi.id" :value="pi.id">
+                                        {{ pi.nombre }} (Stock: {{ pi.existencia }})
+                                    </option>
+                                </select>
+                                <div class="w-20">
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        v-model.number="comboCantidad"
+                                        class="w-full bg-white border border-purple-200 text-stone-800 text-xs rounded-xl p-2 text-center"
+                                        placeholder="Cant."
+                                        title="Cantidad incluida en el combo"
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    @click="agregarProductoAlCombo"
+                                    :disabled="!comboProductoSeleccionadoId"
+                                    class="px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
+                                >
+                                    + Añadir
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Lista de Ítems Asociados -->
+                        <div v-if="formItem.combo_items && formItem.combo_items.length > 0" class="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                            <div
+                                v-for="(ci, cIdx) in formItem.combo_items"
+                                :key="ci.item_id"
+                                class="flex items-center justify-between bg-white border border-purple-100 px-3 py-1.5 rounded-xl text-xs"
+                            >
+                                <span class="font-bold text-stone-800 truncate pr-2">
+                                    {{ ci.nombre }}
+                                </span>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs bg-purple-100 text-purple-900 font-bold px-2 py-0.5 rounded-md">
+                                        {{ ci.cantidad }} unid.
+                                    </span>
+                                    <button
+                                        type="button"
+                                        @click="removerProductoDelCombo(cIdx)"
+                                        class="text-rose-500 hover:text-rose-700 font-bold px-1 cursor-pointer"
+                                        title="Quitar componente"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else class="text-center py-2 text-stone-400 text-[11px]">
+                            Selecciona los platos o bebidas que conforman este combo.
+                        </div>
+
+                        <div class="p-2.5 bg-purple-100/70 rounded-xl text-[11px] text-purple-950 leading-relaxed border border-purple-200/60">
+                            💡 <strong>Descuento automático de inventario:</strong> Cada venta de este combo descontará automáticamente del inventario la cantidad asociada de cada producto que lo conforma (1 unidad o la especificada). El campo de existencias a continuación puede utilizarse si el combo no depende de platos asociados o para inventario propio.
+                        </div>
+                    </div>
+
                     <div v-if="formItem.controla_inventario" class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block font-bold text-stone-700 mb-1">Existencia Actual</label>
@@ -351,13 +437,17 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 const props = defineProps({
     categorias: Array,
     items: Object,
+    itemsParaCombo: {
+        type: Array,
+        default: () => [],
+    },
     otrasSucursales: Array,
     filtros: Object,
     tiposImpuesto: Array,
@@ -424,12 +514,67 @@ const formItem = ref({
     disponible: true,
     activo: true,
     orden: 0,
+    combo_items: [],
 });
+
+// Selección y filtrado de componentes para combos
+const comboProductoSeleccionadoId = ref('');
+const comboCantidad = ref(1);
+const busquedaProductoCombo = ref('');
+
+const itemsComboFiltrados = computed(() => {
+    const list = props.itemsParaCombo || [];
+    if (!busquedaProductoCombo.value.trim()) return list;
+    const term = busquedaProductoCombo.value.toLowerCase().trim();
+    return list.filter(i => i.nombre.toLowerCase().includes(term));
+});
+
+function agregarProductoAlCombo() {
+    if (!comboProductoSeleccionadoId.value) return;
+    const prod = (props.itemsParaCombo || []).find(i => i.id === Number(comboProductoSeleccionadoId.value));
+    if (!prod) return;
+
+    if (!formItem.value.combo_items) {
+        formItem.value.combo_items = [];
+    }
+
+    const existe = formItem.value.combo_items.find(ci => ci.item_id === prod.id);
+    if (existe) {
+        existe.cantidad += Number(comboCantidad.value) || 1;
+    } else {
+        formItem.value.combo_items.push({
+            item_id: prod.id,
+            nombre: prod.nombre,
+            cantidad: Number(comboCantidad.value) || 1,
+        });
+    }
+
+    comboProductoSeleccionadoId.value = '';
+    comboCantidad.value = 1;
+    busquedaProductoCombo.value = '';
+}
+
+function removerProductoDelCombo(idx) {
+    if (formItem.value.combo_items) {
+        formItem.value.combo_items.splice(idx, 1);
+    }
+}
 
 function abrirModalItem(item = null) {
     itemEnEdicion.value = item;
+    comboProductoSeleccionadoId.value = '';
+    comboCantidad.value = 1;
+    busquedaProductoCombo.value = '';
+
     if (item) {
-        formItem.value = { ...item };
+        formItem.value = {
+            ...item,
+            combo_items: item.items_del_combo ? item.items_del_combo.map(c => ({
+                item_id: c.id,
+                nombre: c.nombre,
+                cantidad: c.pivot ? Number(c.pivot.cantidad) : 1,
+            })) : [],
+        };
     } else {
         formItem.value = {
             categoria_id: props.categorias[0]?.id || '',
@@ -445,18 +590,27 @@ function abrirModalItem(item = null) {
             disponible: true,
             activo: true,
             orden: 0,
+            combo_items: [],
         };
     }
     modalItemVisible.value = true;
 }
 
 function guardarItem() {
+    const payload = {
+        ...formItem.value,
+        combo_items: (formItem.value.combo_items || []).map(ci => ({
+            item_id: ci.item_id,
+            cantidad: Number(ci.cantidad) || 1,
+        })),
+    };
+
     if (itemEnEdicion.value) {
-        router.put(`/admin/menu/items/${itemEnEdicion.value.id}`, formItem.value, {
+        router.put(`/admin/menu/items/${itemEnEdicion.value.id}`, payload, {
             onSuccess: () => modalItemVisible.value = false,
         });
     } else {
-        router.post('/admin/menu/items', formItem.value, {
+        router.post('/admin/menu/items', payload, {
             onSuccess: () => modalItemVisible.value = false,
         });
     }

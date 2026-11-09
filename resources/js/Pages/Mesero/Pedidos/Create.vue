@@ -6,12 +6,22 @@
                     <h1 class="text-2xl font-black text-stone-900 tracking-tight">Tomar Nueva Comanda</h1>
                     <p class="text-xs text-stone-500">Selecciona la mesa o modalidad, agrega platos y confirma para enviar a cocina.</p>
                 </div>
-                <a
-                    href="/mesero/pedidos"
-                    class="text-xs font-bold text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-3.5 py-2 rounded-xl transition"
-                >
-                    ← Volver a Comandas
-                </a>
+                <div class="flex items-center space-x-2">
+                    <Link
+                        href="/mesero"
+                        class="text-xs font-bold text-stone-700 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-3.5 py-2 rounded-xl transition flex items-center space-x-1"
+                    >
+                        <span>←</span>
+                        <span>Panel de Operaciones</span>
+                    </Link>
+                    <Link
+                        href="/"
+                        class="text-xs font-bold text-stone-700 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-3.5 py-2 rounded-xl transition flex items-center space-x-1"
+                    >
+                        <span>🏠</span>
+                        <span>Menú Público</span>
+                    </Link>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -184,7 +194,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { router, Link } from '@inertiajs/vue3';
 import MeseroLayout from '@/Layouts/MeseroLayout.vue';
 
 const props = defineProps({

@@ -42,7 +42,7 @@
                             <input v-model="form.remember" type="checkbox" class="rounded-sm border-stone-300 text-orange-600 focus:ring-orange-500" />
                             <span class="ml-2 text-stone-600">Recordarme</span>
                         </label>
-                        <a href="/forgot-password" class="font-medium text-orange-600 hover:text-orange-500">¿Olvidaste tu contraseña?</a>
+                        <Link href="/forgot-password" class="font-medium text-orange-600 hover:text-orange-500">¿Olvidaste tu contraseña?</Link>
                     </div>
 
                     <div>
@@ -58,7 +58,7 @@
 
                     <div class="text-center text-xs text-stone-500">
                         ¿No tienes una cuenta aún?
-                        <a href="/registro" class="font-bold text-orange-600 hover:underline ml-1">Regístrate aquí</a>
+                        <Link href="/registro" class="font-bold text-orange-600 hover:underline ml-1">Regístrate aquí</Link>
                     </div>
                 </form>
             </div>
@@ -68,10 +68,19 @@
 
 <script setup>
 import { onMounted } from 'vue';
-import { useForm, usePage, router } from '@inertiajs/vue3';
+import { useForm, usePage, router, Link } from '@inertiajs/vue3';
 import PublicLayout from '@/Layouts/PublicLayout.vue';
 
 const page = usePage();
+
+// Si ya existe sesión activa (verificada por sessionStorage o props), redirigir de inmediato sin renderizar login
+if (typeof window !== 'undefined') {
+    const yaAutenticado = sessionStorage.getItem('sigr_auth_active') === '1' || !!page.props.auth?.user;
+    if (yaAutenticado) {
+        const destino = sessionStorage.getItem('sigr_dashboard') || page.props.auth?.user?.dashboard_url || '/';
+        window.location.replace(destino);
+    }
+}
 
 const form = useForm({
     email: '',
@@ -81,20 +90,31 @@ const form = useForm({
 
 onMounted(() => {
     // Si ya existe sesión activa, no permitir ver login ni con botón de retroceso
-    if (page.props.auth?.user) {
-        router.visit(page.props.auth.user.dashboard_url || '/');
+    if (page.props.auth?.user || sessionStorage.getItem('sigr_auth_active') === '1') {
+        const destino = sessionStorage.getItem('sigr_dashboard') || page.props.auth?.user?.dashboard_url || '/';
+        window.location.replace(destino);
     }
 
     // Manejar caché de historial del navegador (bfcache)
     window.addEventListener('pageshow', (event) => {
-        if (event.persisted && page.props.auth?.user) {
-            router.visit(page.props.auth.user.dashboard_url || '/');
+        if ((event.persisted && page.props.auth?.user) || sessionStorage.getItem('sigr_auth_active') === '1') {
+            const destino = sessionStorage.getItem('sigr_dashboard') || page.props.auth?.user?.dashboard_url || '/';
+            window.location.replace(destino);
         }
     });
 });
 
 function submit() {
     form.post('/login', {
+        replace: true,
+        onSuccess: (pageResp) => {
+            if (typeof window !== 'undefined') {
+                sessionStorage.setItem('sigr_auth_active', '1');
+                if (pageResp?.props?.auth?.user?.dashboard_url) {
+                    sessionStorage.setItem('sigr_dashboard', pageResp.props.auth.user.dashboard_url);
+                }
+            }
+        },
         onFinish: () => form.reset('password'),
     });
 }

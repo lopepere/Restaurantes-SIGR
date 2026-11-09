@@ -58,6 +58,14 @@ class MenuController extends Controller
             ->orderBy('orden')
             ->paginate(25);
 
+        // Ítems individuales de la sucursal disponibles para armar combos
+        $itemsParaCombo = ItemMenu::withoutGlobalScopes()
+            ->where('sucursal_id', $sucursalId)
+            ->where('es_combo', false)
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->get(['id', 'nombre', 'precio', 'existencia', 'controla_inventario']);
+
         // Otras sucursales para el modal de copiar menú
         $otrasSucursales = Sucursal::where('id', '!=', $sucursalId)
             ->where('activa', true)
@@ -66,6 +74,7 @@ class MenuController extends Controller
         return Inertia::render('Admin/Menu/Index', [
             'categorias' => $categorias,
             'items' => $items,
+            'itemsParaCombo' => $itemsParaCombo,
             'otrasSucursales' => $otrasSucursales,
             'filtros' => $request->only(['buscar', 'categoria_id']),
             'tiposImpuesto' => array_column(TipoImpuesto::cases(), 'value'),

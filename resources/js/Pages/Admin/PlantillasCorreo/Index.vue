@@ -1,5 +1,5 @@
 <template>
-    <AdminLayout>
+    <component :is="layoutActual">
         <div class="p-6 space-y-6">
             <!-- Encabezado -->
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -202,13 +202,18 @@
                 </div>
             </div>
         </div>
-    </AdminLayout>
+    </component>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { router, useForm } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { router, useForm, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import SuperAdminLayout from '@/Layouts/SuperAdminLayout.vue';
+
+const page = usePage();
+const esSuperAdmin = computed(() => page.props.auth?.user?.roles?.includes('super_admin'));
+const layoutActual = computed(() => esSuperAdmin.value ? SuperAdminLayout : AdminLayout);
 
 const props = defineProps({
     plantillas: Array,

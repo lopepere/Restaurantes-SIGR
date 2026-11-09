@@ -1,5 +1,11 @@
 <template>
     <PublicLayout :sucursal-nombre="sucursalActiva?.nombre" :items-count="totalItemsEnCarrito" @toggle-carrito="mostrarCarrito = !mostrarCarrito">
+        <!-- Alerta flotante de Inventario / Rol en tiempo real -->
+        <div v-if="alertaInventario" class="fixed top-20 right-6 z-50 max-w-md bg-amber-500 text-stone-950 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-amber-300 animate-bounce">
+            <span class="text-xl">⚠️</span>
+            <span class="text-xs font-black">{{ alertaInventario }}</span>
+            <button type="button" @click="alertaInventario = ''" class="ml-auto text-stone-900 font-bold hover:text-black">✕</button>
+        </div>
         <!-- Hero Section y Selector de Sucursal -->
         <section class="bg-gradient-to-b from-orange-50/70 via-stone-50 to-stone-50 py-10 px-4 sm:px-6 lg:px-8 border-b border-stone-200">
             <div class="max-w-7xl mx-auto">
@@ -209,6 +215,9 @@
                                     <span class="text-xl font-black text-stone-900">{{ item.precio_formateado }}</span>
                                 </div>
                                 <span class="text-[10px] text-stone-400 block">Impuesto (INC 8%) incluido</span>
+                                <span v-if="item.controla_inventario && !item.esta_agotado && item.existencia <= 5" class="inline-block mt-0.5 text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
+                                    ¡Solo quedan {{ item.existencia }} disp.!
+                                </span>
                             </div>
 
                             <!-- Botón de Agregar / Cantidad -->
@@ -417,10 +426,26 @@
                             <span class="text-xl text-orange-600">{{ formatearMoneda(resumenTotales.total) }}</span>
                         </div>
 
+                        <div v-if="esPersonal" class="p-3 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-950 space-y-1 mb-2">
+                            <div class="flex items-center gap-1.5 font-bold text-amber-900">
+                                <span>⚠️</span>
+                                <span>Rol de Personal ({{ userRoles.join(', ') }})</span>
+                            </div>
+                            <p class="text-[11px] leading-snug">
+                                Los pedidos desde la carta pública solo están permitidos para clientes o invitados. Como parte del personal debes utilizar tu panel operativo.
+                            </p>
+                        </div>
+
                         <button
                             type="button"
+                            :disabled="esPersonal || carrito.length === 0"
                             @click="mostrarModalCheckout = true"
-                            class="w-full py-3.5 bg-orange-600 hover:bg-orange-700 active:scale-98 text-white text-sm font-bold rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
+                            :class="[
+                                'w-full py-3.5 text-sm font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2',
+                                esPersonal || carrito.length === 0
+                                    ? 'bg-stone-200 text-stone-400 cursor-not-allowed shadow-none'
+                                    : 'bg-orange-600 hover:bg-orange-700 active:scale-98 text-white cursor-pointer'
+                            ]"
                         >
                             <span>🛎️ Continuar con el Pedido</span>
                         </button>
@@ -560,9 +585,17 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { router, usePage } from '@inertiajs/vue3';
 import PublicLayout from '@/Layouts/PublicLayout.vue';
+
+const page = usePage();
+const alertaInventario = ref('');
+
+const userRoles = computed(() => page.props.auth?.user?.roles || []);
+const esPersonal = computed(() => {
+    return userRoles.value.some(r => ['admin', 'super_admin', 'mesero', 'cajero', 'cocinero'].includes(r));
+});
 
 const props = defineProps({
     sucursales: {
@@ -596,6 +629,14 @@ const valorPropinaLibre = ref(0);
 
 // Cargar carrito previo de localStorage si corresponde a esta sucursal
 onMounted(() => {
+    const handleToggleCarrito = () => {
+        mostrarCarrito.value = !mostrarCarrito.value;
+    };
+    window.addEventListener('toggle-carrito', handleToggleCarrito);
+    onUnmounted(() => {
+        window.removeEventListener('toggle-carrito', handleToggleCarrito);
+    });
+
     const claveLocal = `sigr_carrito_${props.sucursalActiva?.id}`;
     const guardado = localStorage.getItem(claveLocal);
     if (guardado) {
@@ -677,12 +718,23 @@ function obtenerCantidadEnCarrito(itemId) {
 }
 
 function agregarAlCarrito(item) {
+    if (item.controla_inventario) {
+        const existencia = Number(item.existencia) || 0;
+        if (existencia <= 0 || item.esta_agotado) {
+            alertaInventario.value = `El producto "${item.nombre}" se encuentra agotado en inventario.`;
+            setTimeout(() => { alertaInventario.value = ''; }, 4500);
+            return;
+        }
+    }
+
     const precio = item.precio_promocional !== null ? item.precio_promocional : item.precio;
     const precioFormateado = item.precio_promocional_formateado !== null ? item.precio_promocional_formateado : item.precio_formateado;
 
     carrito.value.push({
         id: item.id,
         nombre: item.nombre,
+        controla_inventario: item.controla_inventario,
+        existencia: item.existencia,
         precio_unitario: precio,
         precio_unitario_formateado: precioFormateado,
         base_imponible: item.base_imponible,
@@ -696,6 +748,15 @@ function agregarAlCarrito(item) {
 function incrementarCantidad(item) {
     const encontrado = carrito.value.find(i => i.id === item.id);
     if (encontrado) {
+        const itemInventario = item.controla_inventario !== undefined ? item : (encontrado.controla_inventario !== undefined ? encontrado : null);
+        if (itemInventario && itemInventario.controla_inventario) {
+            const existencia = Number(itemInventario.existencia) || 0;
+            if (encontrado.cantidad + 1 > existencia) {
+                alertaInventario.value = `No hay más existencias disponibles de "${encontrado.nombre}". (Máximo disponible: ${existencia} unidades).`;
+                setTimeout(() => { alertaInventario.value = ''; }, 4500);
+                return;
+            }
+        }
         encontrado.cantidad++;
         guardarCarrito();
     } else {
@@ -773,6 +834,11 @@ function procederAlPedido() {
 
 function enviarPedido() {
     checkoutError.value = null;
+
+    if (esPersonal.value) {
+        checkoutError.value = 'Los pedidos desde la carta pública solo están permitidos para clientes o visitantes no registrados. Por favor utiliza tu panel de gestión.';
+        return;
+    }
 
     if (checkoutForm.value.tipo === 'domicilio' && !checkoutForm.value.direccion_entrega) {
         checkoutError.value = 'La dirección de entrega es obligatoria para domicilios.';
