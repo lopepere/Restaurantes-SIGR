@@ -1,22 +1,30 @@
 <?php
 
 use App\Http\Controllers\Admin\BitacoraController;
+use App\Http\Controllers\Admin\CajaController;
+use App\Http\Controllers\Admin\CompraController;
+use App\Http\Controllers\Admin\ComprobanteController as AdminComprobanteController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EspacioController;
+use App\Http\Controllers\Admin\InformeController;
+use App\Http\Controllers\Admin\InventarioController;
 use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\MeseroController;
 use App\Http\Controllers\Admin\PapeleraController;
 use App\Http\Controllers\Admin\PedidoController as AdminPedidoController;
+use App\Http\Controllers\Admin\PlantillaCorreoController;
 use App\Http\Controllers\Admin\PromocionController;
 use App\Http\Controllers\Admin\ReservaController as AdminReservaController;
 use App\Http\Controllers\Auth\InvitacionController;
 use App\Http\Controllers\Auth\RegistroController;
+use App\Http\Controllers\Cliente\ComprobanteController as ClienteComprobanteController;
 use App\Http\Controllers\Cliente\DashboardController as ClienteDashboardController;
 use App\Http\Controllers\Cliente\PedidoController as ClientePedidoController;
 use App\Http\Controllers\Cliente\PerfilController;
 use App\Http\Controllers\Cliente\ReservaController as ClienteReservaController;
 use App\Http\Controllers\Mesero\DashboardController as MeseroDashboardController;
 use App\Http\Controllers\Mesero\PedidoController as MeseroPedidoController;
+use App\Http\Controllers\Public\ComprobantePublicoController;
 use App\Http\Controllers\Public\HomeController;
 use App\Http\Controllers\Public\PedidoPublicoController;
 use App\Http\Controllers\Public\ReservaPublicaController;
@@ -40,6 +48,12 @@ Route::get('/reservar', [ReservaPublicaController::class, 'create'])->name('rese
 Route::get('/reservas/franjas', [ReservaPublicaController::class, 'franjas'])->name('reservas.publico.franjas');
 Route::post('/reservas', [ReservaPublicaController::class, 'store'])->name('reservas.publico.store');
 Route::get('/reservas/confirmada/{codigo}', [ReservaPublicaController::class, 'confirmada'])->name('reservas.publico.confirmada');
+
+// Comprobantes de Venta Públicos (SC-03, RF-FAC-04)
+Route::get('/comprobante/verificar/{cuv}', [ComprobantePublicoController::class, 'verificar'])->name('comprobantes.publico.verificar');
+Route::get('/comprobantes/{cuv}', [ComprobantePublicoController::class, 'verificar'])->name('comprobantes.publico.verificar.alt');
+Route::get('/comprobante/{cuv}/tirilla', [ComprobantePublicoController::class, 'tirilla'])->name('comprobantes.publico.tirilla');
+Route::get('/comprobantes/{cuv}/tirilla', [ComprobantePublicoController::class, 'tirilla'])->name('comprobantes.publico.tirilla.alt');
 
 // Registro voluntario desde el home (RF-USR-14, SC-01)
 Route::get('/registro', [RegistroController::class, 'create'])->name('registro');
@@ -70,6 +84,11 @@ Route::middleware(['auth', 'verified', 'role:cliente'])->prefix('cliente')->name
     // Reservas del cliente (RF-RES-10, CA-23)
     Route::get('/reservas', [ClienteReservaController::class, 'index'])->name('reservas.index');
     Route::post('/reservas/{reserva}/cancelar', [ClienteReservaController::class, 'cancelar'])->name('reservas.cancelar');
+
+    // Comprobantes del cliente (SC-03, RF-FAC-05, CA-31)
+    Route::get('/comprobantes', [ClienteComprobanteController::class, 'index'])->name('comprobantes.index');
+    Route::get('/comprobantes/{comprobante}/descargar', [ClienteComprobanteController::class, 'descargar'])->name('comprobantes.descargar');
+    Route::post('/comprobantes/{comprobante}/reenviar', [ClienteComprobanteController::class, 'reenviar'])->name('comprobantes.reenviar');
 });
 
 /*
@@ -136,6 +155,39 @@ Route::middleware(['auth', 'role:admin|super_admin'])->prefix('admin')->name('ad
     Route::post('/promociones', [PromocionController::class, 'store'])->name('promociones.store');
     Route::put('/promociones/{promocion}', [PromocionController::class, 'update'])->name('promociones.update');
     Route::delete('/promociones/{promocion}', [PromocionController::class, 'destroy'])->name('promociones.destroy');
+
+    // Operación: Inventario y Kárdex (RF-INV-01..09, CA-27, CA-28)
+    Route::get('/inventario', [InventarioController::class, 'index'])->name('inventario.index');
+    Route::post('/inventario/{itemMenu}/ajustar', [InventarioController::class, 'ajustar'])->name('inventario.ajustar');
+    Route::post('/inventario/ajustar-lote', [InventarioController::class, 'ajustarLote'])->name('inventario.ajustar-lote');
+    Route::post('/inventario/modo', [InventarioController::class, 'cambiarModo'])->name('inventario.modo');
+
+    // Operación: Compras y Proveedores (RF-COM-01..08)
+    Route::get('/compras', [CompraController::class, 'index'])->name('compras.index');
+    Route::post('/compras', [CompraController::class, 'store'])->name('compras.store');
+    Route::post('/compras/{compra}/anular', [CompraController::class, 'anular'])->name('compras.anular');
+    Route::post('/compras/{compra}/devolver', [CompraController::class, 'devolver'])->name('compras.devolver');
+    Route::post('/compras/proveedores', [CompraController::class, 'storeProveedor'])->name('compras.proveedores.store');
+
+    // Operación: Caja y Turnos (RF-CAJ-01..08, CA-29, CA-30)
+    Route::get('/caja', [CajaController::class, 'index'])->name('caja.index');
+    Route::post('/caja/apertura', [CajaController::class, 'apertura'])->name('caja.apertura');
+    Route::post('/caja/pagos/{pedido}', [CajaController::class, 'pago'])->name('caja.pago');
+    Route::post('/caja/cierre/{sesionCaja}', [CajaController::class, 'cierre'])->name('caja.cierre');
+    Route::post('/caja/cajas', [CajaController::class, 'storeCaja'])->name('caja.cajas.store');
+
+    // Operación: Comprobantes FAC (SC-03, RF-FAC-01..06, CA-31)
+    Route::get('/comprobantes', [AdminComprobanteController::class, 'index'])->name('comprobantes.index');
+    Route::post('/comprobantes/{comprobante}/reenviar', [AdminComprobanteController::class, 'reenviar'])->name('comprobantes.reenviar');
+
+    // Operación: Plantillas de Correo (RF-CFG-04..09, CA-34..36)
+    Route::get('/plantillas-correo', [PlantillaCorreoController::class, 'index'])->name('plantillas-correo.index');
+    Route::put('/plantillas-correo/{plantilla}', [PlantillaCorreoController::class, 'update'])->name('plantillas-correo.update');
+    Route::get('/plantillas-correo/{plantilla}/vista-previa', [PlantillaCorreoController::class, 'vistaPrevia'])->name('plantillas-correo.vista-previa');
+    Route::post('/plantillas-correo/{plantilla}/enviar-prueba', [PlantillaCorreoController::class, 'enviarPrueba'])->name('plantillas-correo.enviar-prueba');
+
+    // Operación: Informes y Estadísticas (RF-INF, CA-38..40)
+    Route::get('/informes', [InformeController::class, 'index'])->name('informes.index');
 
     // Bitácora de Auditoría de solo lectura (RF-AUD-02, 03, CA-19)
     Route::get('/bitacora', [BitacoraController::class, 'index'])->name('bitacora.index');

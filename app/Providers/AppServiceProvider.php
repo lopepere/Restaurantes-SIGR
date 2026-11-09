@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Contracts\FacturacionElectronicaGateway;
+use App\Services\Facturacion\NullFacturacionElectronicaGateway;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -13,7 +15,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(
+            FacturacionElectronicaGateway::class,
+            NullFacturacionElectronicaGateway::class
+        );
     }
 
     /**

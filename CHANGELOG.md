@@ -6,6 +6,47 @@ Todos los cambios notables de este proyecto serán documentados en este archivo 
 
 ## [Sin publicar]
 
+### Añadido (Iteración I-5 · Operación: Inventario, Compras, Caja, Comprobantes FAC, Plantillas e Informes) [LB-01] [SC-03] [RF-INV, RF-COM, RF-CAJ, RF-FAC, RF-CFG-04..09, RF-INF] [CA-13..18, 27..31, 34..36, 38..40]
+- **Migraciones de Base de Datos**:
+  - `proveedores`: gestión integral de proveedores de alimentos, bebidas e insumos (`razon_social`, `nit`, `telefono`, `email`, `direccion`, `contacto_nombre`, `contacto_telefono`, `notas`, `activo`, soft deletes).
+  - `compras`, `compra_items` y `devoluciones_compra`: registro inmutable de facturas de compra a proveedores (sin soft deletes), líneas de detalle con factor de conversión para modo dependiente, cálculo configurable de impuestos (radio button "Sin impuesto" por defecto o porcentajes personalizados, flag `incluye_impuesto`), y devoluciones formales con reversión de inventario.
+  - `movimientos_inventario`: kárdex inmutable multicriterio con balance de existencias y costo unitario/total, trazabilidad polimórfica a compras, ventas, reposiciones por cancelación de pedidos, ajustes justificados e inventario inicial.
+  - `cajas`, `sesiones_caja` y `pagos`: control físico de cajas, turnos de operación con base inicial en efectivo, arqueo ciego o asistido (`monto_apertura`, `monto_cierre_declarado`, `monto_cierre_calculado`, `diferencia`, desglose en JSON), cobro de pedidos con pagos mixtos (efectivo, tarjeta, transferencia), cálculo automático de cambio/devuelta y propina voluntaria abierta o sugerida (SC-02).
+  - `comprobantes` y `envios_comprobante`: módulo de Comprobantes de Venta FAC inmutables (SC-03), consecutivo único por sucursal (`FAC-{SUCURSAL_ID}-{YYYYMMDD}-{0001}`), CUV UUID, hash criptográfico SHA-256 de la tirilla térmica de 80 mm, y bitácora de envíos de solo inserción con auditoría inmutable.
+  - `plantillas_correo`: almacenamiento de las 8 plantillas de correo transaccionales del sistema con variables dinámicas disponibles, configurables a nivel sucursal o global.
+- **Modelos, Enums y Contratos de Dominio**:
+  - `App\Models\Proveedor`, `App\Models\Compra`, `App\Models\CompraItem`, `App\Models\DevolucionCompra`, `App\Models\MovimientoInventario`, `App\Models\Caja`, `App\Models\SesionCaja`, `App\Models\Pago`, `App\Models\Comprobante`, `App\Models\EnvioComprobante`, `App\Models\PlantillaCorreo`.
+  - `App\Enums\EstadoCompra` (`REGISTRADA`, `ANULADA`, `DEVUELTA`), `App\Enums\EstadoSesionCaja` (`ABIERTA`, `CERRADA`), `App\Enums\EstadoComprobante` (`EMITIDO`, `ANULADO`).
+  - `App\Contracts\FacturacionElectronicaGateway` y `App\Services\Facturacion\NullFacturacionElectronicaGateway`: arquitectura desacoplada para habilitar facturación electrónica futura vía DI sin alterar el flujo operativo de ventas.
+- **Acciones y Servicios de Dominio (Monolito Modular)**:
+  - `App\Services\InventarioService`: descuento de existencias con bloqueo pesimista (`lockForUpdate`), reposición automática por cancelación de pedidos (CA-27), registro de inventario inicial único con regla de exclusividad (RF-INV-04), ajustes manuales con motivo justificado obligatorio (RF-INV-05), ajuste por lote masivo en una transacción (RF-INV-06), alertas automáticas de existencia mínima (CA-28) y alternancia entre régimen `AUTONOMO` y `DEPENDIENTE` (restringido a super_admin).
+  - `App\Actions\Compras\RegistrarCompraAction`: registro de compra a proveedor, cálculo de impuestos, adición de stock convertido al catálogo e impacto en kárdex (RF-COM-02..05).
+  - `App\Actions\Compras\AnularCompraAction`: anulación documentada con motivo y reversión de existencias en kárdex sin borrado físico (RF-COM-06).
+  - `App\Actions\Compras\DevolverCompraAction`: formalización de devoluciones de mercancía con reversión de inventario (RF-COM-07).
+  - `App\Actions\Caja\AperturaCajaAction`: apertura de turno de caja con base inicial en efectivo y prevención de turnos concurrentes (RF-CAJ-02, CA-29).
+  - `App\Actions\Caja\RegistrarPagoAction`: cobro con pagos simples o mixtos, cálculo de cambio, aplicación de propina voluntaria abierta o porcentual (SC-02), transición del pedido a PAGADO y generación automática del Comprobante FAC inmutable (RF-CAJ-04, CA-30).
+  - `App\Actions\Caja\CierreCajaAction`: arqueo de caja con cálculo de diferencia (cuadrada, faltante, sobrante) y consolidación de propinas recaudadas por mesero (RF-CAJ-05, CA-30).
+  - `App\Actions\Comprobantes\GenerarComprobanteAction`: emisión inmutable de comprobante de venta FAC con hash SHA-256 y representación en tirilla de 80 mm (SC-03, RF-FAC-01..03).
+  - `App\Actions\Comprobantes\ReenviarComprobanteAction`: reenvío hasta a 3 correos electrónicos con límite de velocidad de 10 reenvíos por hora auditado en `envios_comprobante` (RF-FAC-06, CA-31).
+  - `App\Services\PlantillaRenderer`: renderizador seguro de plantillas HTML saneado con HTMLPurifier (`clean()`) y sustitución con `strtr()` **sin compilar Blade desde la base de datos** (RNF-SEG, CA-34..36).
+- **Notificaciones y Correos**:
+  - `App\Notifications\ComprobanteEmitidoNotification`: notificación por correo al cliente con resumen y enlace CUV.
+  - `App\Mail\PlantillaPruebaMail`: mailable seguro para pruebas directas desde el editor visual de plantillas.
+- **Frontend Inertia.js (Vue 3 + Tailwind CSS 4)**:
+  - `Public/ComprobanteVerificar.vue`: verificación pública de autenticidad por CUV con hash SHA-256 y enlace a tirilla térmica (RF-FAC-04).
+  - `Cliente/Comprobantes/Index.vue`: panel «Mis comprobantes» en el área del cliente con descarga de tirilla y reenvío por correo (RF-FAC-05).
+  - `Admin/Inventario/Index.vue`: control de existencias, kárdex, alertas de stock mínimo, ajustes individuales y por lote, y cambio de modo de inventario (RF-INV-01..09).
+  - `Admin/Compras/Index.vue`: monitor y registro de compras con impuestos, anulaciones, devoluciones y gestión de proveedores (RF-COM-01..08).
+  - `Admin/Caja/Index.vue`: tablero operativo de turnos, apertura con base, arqueo y cierre, y cobro rápido de pedidos por cobrar con cambio y propina (RF-CAJ-01..08).
+  - `Admin/Comprobantes/Index.vue`: monitor administrativo de comprobantes FAC con filtros, vista previa, tirilla 80 mm y reenvío auditado (RF-FAC-01..06).
+  - `Admin/PlantillasCorreo/Index.vue`: editor visual de plantillas con pills de variables, vista previa segura en tiempo real y envío de prueba (RF-CFG-04..09).
+  - `Admin/Informes/Index.vue`: tablero ejecutivo de métricas operativas en tiempo real (ventas por modalidad, top 5 platos, balance comercial y arqueo de caja) (RF-INF, CA-38..40).
+- **Seeders**:
+  - `OperacionSeeder`: 8 plantillas transaccionales del sistema, 3 proveedores, 2 cajas registradoras por sede, existencias iniciales, 1 compra demo y 1 sesión de caja activa con base.
+- **Pruebas Automatizadas (Pest)**:
+  - 25 nuevas pruebas exhaustivas en `tests/Feature/Operacion/` (`InventarioTest`, `CompraTest`, `CajaTest`, `ComprobanteTest`, `PlantillaCorreoTest`).
+  - Suite global: 98 pruebas, 466 aserciones, 100% pasando (~10.5s).
+
 ### Añadido (Iteración I-4 · Reservas y Mesas) [LB-01]
 - **Migraciones de Base de Datos**:
   - `tipos_mesa`: clasificación y capacidades (`capacidad_minima`, `capacidad_maxima`), con flag de soporte para reservas abiertas (`es_abierta`) con mínimo de personas requerido.

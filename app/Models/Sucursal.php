@@ -146,4 +146,74 @@ class Sucursal extends Model
     {
         return $this->hasMany(Reserva::class, 'sucursal_id');
     }
+
+    /**
+     * Proveedores registrados en esta sucursal.
+     *
+     * @return HasMany<Proveedor, $this>
+     */
+    public function proveedores(): HasMany
+    {
+        return $this->hasMany(Proveedor::class, 'sucursal_id');
+    }
+
+    /**
+     * Compras registradas en esta sucursal.
+     *
+     * @return HasMany<Compra, $this>
+     */
+    public function compras(): HasMany
+    {
+        return $this->hasMany(Compra::class, 'sucursal_id');
+    }
+
+    /**
+     * Cajas de esta sucursal.
+     *
+     * @return HasMany<Caja, $this>
+     */
+    public function cajas(): HasMany
+    {
+        return $this->hasMany(Caja::class, 'sucursal_id');
+    }
+
+    /**
+     * Sesiones de caja de esta sucursal.
+     *
+     * @return HasMany<SesionCaja, $this>
+     */
+    public function sesionesCaja(): HasMany
+    {
+        return $this->hasMany(SesionCaja::class, 'sucursal_id');
+    }
+
+    /**
+     * Comprobantes de venta FAC emitidos por esta sucursal.
+     *
+     * @return HasMany<Comprobante, $this>
+     */
+    public function comprobantes(): HasMany
+    {
+        return $this->hasMany(Comprobante::class, 'sucursal_id');
+    }
+
+    /**
+     * Movimientos de inventario registrados en esta sucursal.
+     *
+     * @return HasMany<MovimientoInventario, $this>
+     */
+    public function movimientosInventario(): HasMany
+    {
+        return $this->hasMany(MovimientoInventario::class, 'sucursal_id');
+    }
+
+    /**
+     * Plantillas de correo personalizadas de esta sucursal.
+     *
+     * @return HasMany<PlantillaCorreo, $this>
+     */
+    public function plantillasCorreo(): HasMany
+    {
+        return $this->hasMany(PlantillaCorreo::class, 'sucursal_id');
+    }
 }

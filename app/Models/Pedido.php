@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -46,6 +47,9 @@ use Illuminate\Support\Carbon;
  * @property Carbon $updated_at
  * @property Carbon|null $deleted_at
  * @property-read Collection<int, PedidoItem> $items
+ * @property-read User|null $cliente
+ * @property-read User|null $mesero
+ * @property-read Collection<int, Pago> $pagos
  */
 #[ObservedBy([PedidoObserver::class])]
 class Pedido extends Model
@@ -163,6 +167,24 @@ class Pedido extends Model
     public function solicitudesCancelacion(): HasMany
     {
         return $this->hasMany(SolicitudCancelacion::class);
+    }
+
+    /**
+     * @return HasMany<Pago, $this>
+     */
+    public function pagos(): HasMany
+    {
+        return $this->hasMany(Pago::class);
+    }
+
+    /**
+     * Comprobante de venta emitido para este pedido (SC-03).
+     *
+     * @return HasOne<Comprobante, $this>
+     */
+    public function comprobante(): HasOne
+    {
+        return $this->hasOne(Comprobante::class);
     }
 
     /**

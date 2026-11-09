@@ -368,3 +368,4 @@ onMounted(() => {
     cargarFranjas();
 });
 </script>
+

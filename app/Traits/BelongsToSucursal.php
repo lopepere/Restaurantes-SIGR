@@ -20,10 +20,10 @@ trait BelongsToSucursal
                     return;
                 }
 
-                // Los clientes acceden a sus propios pedidos y reservas independientemente de sucursal_user
+                // Los clientes acceden a sus propios pedidos, reservas y comprobantes independientemente de sucursal_user
                 if ($user->hasRole('cliente')) {
                     $tabla = $q->getModel()->getTable();
-                    if (in_array($tabla, ['pedidos', 'reservas'], true)) {
+                    if (in_array($tabla, ['pedidos', 'reservas', 'comprobantes'], true)) {
                         $q->where($tabla.'.cliente_id', $user->id);
                     }
 

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\OrigenUsuario;
 use App\Traits\Auditable;
+use Carbon\Carbon;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -15,6 +16,22 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
+/**
+ * @property int $id
+ * @property string $nombre
+ * @property string $email
+ * @property string|null $telefono
+ * @property string|null $direccion
+ * @property string $password
+ * @property string|null $avatar
+ * @property string $idioma
+ * @property bool $activo
+ * @property OrigenUsuario $origen
+ * @property Carbon|null $email_verified_at
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
+ * @property Carbon|null $deleted_at
+ */
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
@@ -129,5 +146,25 @@ class User extends Authenticatable implements MustVerifyEmail
     public function pedidosComoMesero(): HasMany
     {
         return $this->hasMany(Pedido::class, 'mesero_id');
+    }
+
+    /**
+     * Comprobantes asociados a este usuario como cliente.
+     *
+     * @return HasMany<Comprobante, $this>
+     */
+    public function comprobantes(): HasMany
+    {
+        return $this->hasMany(Comprobante::class, 'cliente_id');
+    }
+
+    /**
+     * Sesiones de caja abiertas o cerradas por este cajero/usuario.
+     *
+     * @return HasMany<SesionCaja, $this>
+     */
+    public function sesionesCaja(): HasMany
+    {
+        return $this->hasMany(SesionCaja::class, 'user_id');
     }
 }

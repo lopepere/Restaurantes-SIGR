@@ -154,6 +154,14 @@ class ItemMenu extends Model
     }
 
     /**
+     * @return HasMany<MovimientoInventario, $this>
+     */
+    public function movimientosInventario(): HasMany
+    {
+        return $this->hasMany(MovimientoInventario::class, 'item_menu_id');
+    }
+
+    /**
      * Determina si el producto está agotado para venta (por falta de existencia o marcado no disponible).
      */
     public function estaAgotado(): bool
