@@ -720,7 +720,7 @@ const establecerPropina = (porcentaje) => {
 
 const calcularTotalCobro = () => {
     if (!pedidoSeleccionado.value) return 0;
-    return (pedidoSeleccionado.value.subtotal + pedidoSeleccionado.value.impuestos) + formPago.propina_valor;
+    return (pedidoSeleccionado.value.subtotal + pedidoSeleccionado.value.impuestos) + Math.max(0, Number(formPago.propina_valor || 0));
 };
 
 const ejecutarCobro = () => {

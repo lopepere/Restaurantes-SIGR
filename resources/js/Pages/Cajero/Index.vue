@@ -681,7 +681,7 @@ function establecerPropina(porcentaje) {
 
 function calcularTotalCobro() {
     if (!pedidoSeleccionado.value) return 0;
-    return (pedidoSeleccionado.value.subtotal + pedidoSeleccionado.value.impuestos) + Number(formPago.propina_valor || 0);
+    return (pedidoSeleccionado.value.subtotal + pedidoSeleccionado.value.impuestos) + Math.max(0, Number(formPago.propina_valor || 0));
 }
 
 function ejecutarCobro() {

@@ -424,6 +424,7 @@
                                     v-model.number="valorPropinaLibre"
                                     min="0"
                                     step="500"
+                                    @input="valorPropinaLibre = Math.max(0, Number(valorPropinaLibre) || 0)"
                                     placeholder="Valor en pesos (ej: 5000)"
                                     class="w-full text-xs bg-stone-50 border border-stone-300 rounded-xl p-2.5 text-stone-900"
                                 />
@@ -875,7 +876,7 @@ const resumenTotales = computed(() => {
     } else if (tipoPropina.value === '10') {
         propina = Math.round(base * 0.10 * 100) / 100;
     } else if (tipoPropina.value === 'abierta') {
-        propina = Number(valorPropinaLibre.value) || 0;
+        propina = Math.max(0, Number(valorPropinaLibre.value) || 0);
     }
 
     return {
