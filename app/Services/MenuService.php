@@ -36,10 +36,13 @@ class MenuService
         // Cargar promociones publicadas y vigentes
         $promocionesVigentes = $this->obtenerPromocionesVigentes($sucursalId);
 
-        // Consultar categorías activas de la sucursal
+        // Consultar categorías activas de la sucursal (excluyendo la categoría de uso interno del sistema "Sin categorizar")
         $categorias = Categoria::withoutGlobalScopes()
             ->where('sucursal_id', $sucursalId)
             ->where('activa', true)
+            ->where('es_sistema', false)
+            ->where('slug', '!=', 'sin-categorizar')
+            ->whereRaw('LOWER(nombre) != ?', ['sin categorizar'])
             ->orderBy('orden')
             ->with(['items' => function ($q) use ($busqueda) {
                 $q->withoutGlobalScopes()
@@ -140,6 +143,7 @@ class MenuService
                 'slug' => $categoria->slug,
                 'descripcion' => $categoria->descripcion,
                 'icono' => $categoria->icono,
+                'es_sistema' => (bool) $categoria->es_sistema,
                 'items' => $itemsFormateados,
             ];
         }

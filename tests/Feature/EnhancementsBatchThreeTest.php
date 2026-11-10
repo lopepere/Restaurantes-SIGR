@@ -16,9 +16,11 @@ use App\Models\Proveedor;
 use App\Models\SesionCaja;
 use App\Models\Sucursal;
 use App\Models\User;
+use App\Services\MenuService;
 use Database\Seeders\RolesYPermisosSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 class EnhancementsBatchThreeTest extends TestCase
@@ -115,6 +117,21 @@ class EnhancementsBatchThreeTest extends TestCase
             ]);
 
         $this->assertSame('Sin categorizar', $sinCat->fresh()->nombre);
+
+        // 4. Verificar que "Sin categorizar" y sus productos se excluyen del menú público del Home
+        $menuService = app(MenuService::class);
+        $menuPublico = $menuService->obtenerMenuPublico($this->sucursal->id);
+        $categoriasSlugs = array_column($menuPublico['categorias'], 'slug');
+        $this->assertNotContains('sin-categorizar', $categoriasSlugs);
+
+        $responseHome = $this->get('/sucursal/'.$this->sucursal->slug);
+        $responseHome->assertStatus(200);
+        $responseHome->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Public/Home')
+            ->where('menu.categorias', function ($categorias) {
+                return ! collect($categorias)->contains('slug', 'sin-categorizar');
+            })
+        );
     }
 
     public function test_superadmin_gestiona_sucursales_cajas_monitores_cocina_y_base_efectivo_diaria(): void

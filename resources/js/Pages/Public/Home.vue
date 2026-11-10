@@ -101,7 +101,7 @@
                         Todas las Categorías
                     </button>
                     <button
-                        v-for="cat in menu.categorias"
+                        v-for="cat in categoriasListado"
                         :key="cat.id"
                         type="button"
                         @click="categoriaActivaId = cat.id"
@@ -753,9 +753,18 @@ function obtenerIconoCategoria(nombre) {
     return '🍽️';
 }
 
+// Categorías visibles en el menú público (excluye 'Sin categorizar' / categorías de sistema)
+const categoriasListado = computed(() => {
+    return (props.menu.categorias || []).filter(c =>
+        !c.es_sistema &&
+        c.slug !== 'sin-categorizar' &&
+        c.nombre?.toLowerCase() !== 'sin categorizar'
+    );
+});
+
 // Filtrado reactivo de categorías e ítems
 const categoriasFiltradas = computed(() => {
-    let cats = props.menu.categorias || [];
+    let cats = categoriasListado.value;
 
     if (categoriaActivaId.value !== null) {
         cats = cats.filter(c => c.id === categoriaActivaId.value);
