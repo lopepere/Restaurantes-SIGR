@@ -21,21 +21,23 @@ La especificación formal y el contrato de construcción del sistema se encuentr
 
 ## 🛠️ Instalación y Puesta en Marcha
 
-### Opción A: Entorno Contenerizado con Laravel Sail (Docker)
+### Opción A: Despliegue en VPS / Contenedores Docker (Producción / Staging)
+La arquitectura de contenedores utiliza **Nginx 1.27 + PHP 8.4-FPM** (sin `php artisan serve`), compilación multi-etapa de activos frontend con **Node 22 + Vite**, **MySQL 8.0**, **Redis 7**, **Worker de Colas**, **Laravel Reverb (WebSockets)** y **Scheduler**, cargando todas las variables desde el archivo `.env`:
+
 ```bash
-# 1. Iniciar servicios (MySQL 8, Redis, Mailpit, Laravel)
-./vendor/bin/sail up -d
+# 1. Preparar el archivo de variables de entorno
+cp .env.example .env
 
-# 2. Ejecutar migraciones y semilleros
-./vendor/bin/sail artisan migrate --seed
+# 2. Construir y levantar todos los contenedores en segundo plano
+docker compose up -d --build
 
-# 3. Compilar interfaz gráfica
-npm run dev
+# 3. (Opcional) Cargar datos semilla de prueba en la primera instalación
+docker compose exec app php artisan db:seed --force
 ```
 
-### Opción B: Entorno Local Directo (XAMPP / PHP CLI)
+### Opción B: Entorno Local Directo (Apache / Nginx / XAMPP)
 
-#### B.1. Conexión MySQL en XAMPP (Recomendada / Activa por defecto)
+#### B.1. Conexión MySQL en XAMPP
 Permite visualizar y administrar todas las tablas desde **phpMyAdmin** (`http://localhost/phpmyadmin`).
 
 **Datos de Conexión de Prueba en MySQL:**
@@ -49,9 +51,9 @@ Permite visualizar y administrar todas las tablas desde **phpMyAdmin** (`http://
 - **Panel phpMyAdmin:** [http://localhost/phpmyadmin/index.php?route=/database/structure&db=sigr](http://localhost/phpmyadmin/index.php?route=/database/structure&db=sigr)
 
 ```bash
-# 1. Asegurar que MySQL esté iniciado en el panel de XAMPP
+# 1. Asegurar que Apache y MySQL estén iniciados en el panel de XAMPP
 
-# 2. Configurar .env para MySQL (ya configurado)
+# 2. Configurar .env para MySQL
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
@@ -62,8 +64,8 @@ DB_PASSWORD=
 # 3. Ejecutar migraciones y semilleros en MySQL
 php artisan migrate:fresh --seed
 
-# 4. Iniciar el servidor local
-php artisan serve
+# 4. Compilar los activos de producción para servir desde Apache / Nginx
+npm run build
 ```
 
 ---
